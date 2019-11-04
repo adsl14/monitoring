@@ -8,10 +8,19 @@
 
 3. Instalar tensorflow
 3.1 Acceder al entorno virtual -> activate tensor
-3.2 conda install tensorflow
+3.2 conda install -c conda-forge tensorflow
 
 4. Instalar keras
 4.1 conda install -c conda-forge keras
 
-5. Instalar Earth Engine API
-5.1 conda install -c conda-forge earthengine-api
+5. Instalar plaidml (solo para tarjetas AMD)
+5.1 pip install plaidml-keras plaidbench
+5.2 plaidml-setup
+
+6. Instalar Earth Engine API
+6.1 conda install -c conda-forge earthengine-api
+
+IMPORTANTE:
+
+Si utilizas gráfica AMD y has instalado plaidml, poner al principio del código lo siguiente: import plaidml.keras
+plaidml.keras.install_backend()
