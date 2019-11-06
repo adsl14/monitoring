@@ -17,8 +17,11 @@
 5.1 pip install plaidml-keras plaidbench
 5.2 plaidml-setup
 
-6. Instalar Earth Engine API
-6.1 conda install -c conda-forge earthengine-api
+6. Instalar folium
+6.1 conda install -c conda-forge folium
+
+7. Instalar Earth Engine API
+7.1 conda install -c conda-forge earthengine-api
 
 IMPORTANTE:
 
