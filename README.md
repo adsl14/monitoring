@@ -1,9 +1,12 @@
 # monitoring
 
+Instalar tensorflow
+
 1. Instalar Anaconda : https://www.anaconda.com/distribution/?gclid=EAIaIQobChMIopvCio3R5QIV05rVCh1Isg3qEAAYASAAEgKoQfD_BwE#download-section
 
 2. Crear un entorno virtual
-2.1 Acceder a Anaconda prompt
+2.1 Acceder a Anaconda prompt (Windows)
+2.1 Acceder a Anaconda prompt usando -> source 'anaconda3/bin/activate'
 2.2 Escribir "conda create -n ["environment-name"]. Ejemplo: conda create -n tensor
 
 3. Instalar tensorflow
@@ -27,3 +30,10 @@ IMPORTANTE:
 
 Si utilizas gráfica AMD y has instalado plaidml, poner al principio del código lo siguiente: import plaidml.keras
 plaidml.keras.install_backend()
+
+Ejecutar tensorflow
+
+1. Acceder a Anaconda prompt: utilizando el comando 
+source anaconda3/bin/activate
+
+2. Acceder al entorno virtual: conda activate tensor
