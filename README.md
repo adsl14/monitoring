@@ -6,12 +6,12 @@ Instalar tensorflow
 
 2. Crear un entorno virtual
 2.1 Acceder a Anaconda prompt (Windows)
-2.1 Acceder a Anaconda prompt usando -> source 'anaconda3/bin/activate'
+2.1 Acceder a Anaconda prompt usando -> source 'anaconda3/bin/activate' (Linux)
 2.2 Escribir "conda create -n ["environment-name"]. Ejemplo: conda create -n tensor
 
-3. Instalar tensorflow
+3. Instalar tensorflow 1.15
 3.1 Acceder al entorno virtual -> activate tensor
-3.2 conda install -c conda-forge tensorflow
+3.2 conda install -c conda-forge tensorflow==1.15
 
 4. Instalar keras
 4.1 conda install -c conda-forge keras
