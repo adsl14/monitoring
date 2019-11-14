@@ -36,7 +36,7 @@ If you're using a AMD GPU, and has installed 'plaidml', you have to include, at 
 ## 2. Running tensorflow
 
 ### 1.1 Execute anaconda prompt by writting in a terminal: 
-	-`source anaconda3/bin/activate`
+-	`source anaconda3/bin/activate`
 
 ### 1.2. Run the virtual enviroment: 
-	-`conda activate tensor`
+-	`conda activate tensor`
