@@ -2,6 +2,7 @@ import numpy as np
 import os
 import argparse
 
+# Normalized the difference between B8 and B4
 def normalizedDifference(a, b):
   """Compute normalized difference of two inputs.
 
@@ -37,6 +38,7 @@ def cleanExperimentFolder(folderNameExperimentPath):
   else:
     print("Folder %s ignored" %(folderNameExperimentPath))
 
+# Add NDVI to numpy array
 def addNDVI(numpy_array):
 
   """Add NDVI to the dataset.
@@ -55,17 +57,21 @@ def addNDVI(numpy_array):
 
   return np.append(numpy_array,ndvi_array, axis=1)
 
-
+# Arguments for the training
 def defineArgParsers():
 
   # All the parameters that has the script
   parser = argparse.ArgumentParser(description='Generate a model.')
-  parser.add_argument("--datasets_path", type=str, default=os.path.join('csv'),
+  parser.add_argument("--datasets_path", type=str, default='csv',
     help="Path where the dataset CSV files are stored.")
-  parser.add_argument("--experiment_folder", type=str, default=os.path.join('experiments'),
+  parser.add_argument("--experiment_folder", type=str, default='experiments',
     help="Path where the experiments are stored.")
-  parser.add_argument("--experiment_name", type=str, default=os.path.join('landsat'),
+  parser.add_argument("--experiment_name", type=str, default='landsat',
     help="Name of the experiment.")
+  parser.add_argument("--trainDataName", type=str, default='Training_demo.csv',
+    help="train dataset's name.")
+  parser.add_argument("--testDataName", type=str, default='Testing_demo.csv',
+    help="train dataset's name.")
   parser.add_argument("--percentageDropout",type=float, default=0.2, help="How many links of the network will be ommited in order to avoid overfitting")
   parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
   parser.add_argument("--num_classes",type=int, default=2, help="Number of classes that the model will use")

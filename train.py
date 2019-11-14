@@ -30,8 +30,8 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint,Te
 def trainModel(args):
 
 	# dataset path
-	trainFilePath = os.path.join(args.datasets_path,'Training_demo.csv')
-	testFilePath= os.path.join(args.datasets_path,'Testing_demo.csv')
+	trainFilePath = os.path.join(args.datasets_path,args.trainDataName)
+	testFilePath= os.path.join(args.datasets_path,args.testDataName)
 
 	# Load the csv tables and get the dataframes
 	trainDataFrame = pd.read_csv(trainFilePath)
@@ -134,7 +134,7 @@ def main():
 
 	args = defineArgParsers()
 
-	trainModel(args)
+	#trainModel(args)
 
 if __name__ == "__main__":
 	main()
