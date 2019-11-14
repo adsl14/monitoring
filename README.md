@@ -1,39 +1,42 @@
-# monitoring
+# Monitoring
+-------------
 
-Instalar tensorflow
+Machine learning network for monitoring areas.
 
-1. Instalar Anaconda : https://www.anaconda.com/distribution/?gclid=EAIaIQobChMIopvCio3R5QIV05rVCh1Isg3qEAAYASAAEgKoQfD_BwE#download-section
+## 1. Installing tensorflow, keras, earth engine, etc.
 
-2. Crear un entorno virtual
-2.1 Acceder a Anaconda prompt (Windows)
-2.1 Acceder a Anaconda prompt usando -> source 'anaconda3/bin/activate' (Linux)
-2.2 Escribir "conda create -n ["environment-name"]. Ejemplo: conda create -n tensor
+### 1.1 Install Anaconda : [Anaconda](https://www.anaconda.com/distribution/?gclid=EAIaIQobChMIopvCio3R5QIV05rVCh1Isg3qEAAYASAAEgKoQfD_BwE#download-section)
 
-3. Instalar tensorflow 1.15
-3.1 Acceder al entorno virtual -> activate tensor
-3.2 conda install -c conda-forge tensorflow==1.15
+### 1.2. Create virtual enviroment
+- Execute Anaconda prompt by searching it (Windows), or by writting this in a Linux's terminal: `source anaconda3/bin/activate`
+- In the terminal, write `conda create -n 'environment-name'`. 
+	- For example: `conda create -n tensor`
 
-4. Instalar keras
-4.1 conda install -c conda-forge keras
+###	1.3. Install tensorflow 1.15
+- Activate the virtual enviroment that you created before: `activate tensor`
+-	Install tensorflow: `conda install -c conda-forge tensorflow==1.15`
 
-5. Instalar plaidml (solo para tarjetas AMD)
-5.1 pip install plaidml-keras plaidbench
-5.2 plaidml-setup
+### 1.4. Install keras
+-	`conda install -c conda-forge keras`
 
-6. Instalar folium
-6.1 conda install -c conda-forge folium
+### 1.5. Install plaidml (only for AMD GPU cards)
+-	`conda install -c conda-forge keras`
+- `pip install plaidml-keras plaidbench`
+- `plaidml-setup`
 
-7. Instalar Earth Engine API
-7.1 conda install -c conda-forge earthengine-api
+### 1.5. Install folium
+-	`conda install -c conda-forge folium`
 
-IMPORTANTE:
+### 1.6. Install Earth Engine API
+-	`conda install -c conda-forge earthengine-api`
 
-Si utilizas gráfica AMD y has instalado plaidml, poner al principio del código lo siguiente: import plaidml.keras
-plaidml.keras.install_backend()
+***VERY IMPORTANT***:
+If you're using a AMD GPU, and has installed 'plaidml', you have to include, at the begining of the python code, the following code: `import plaidml.keras plaidml.keras.install_backend()`
 
-Ejecutar tensorflow
+## 2. Running tensorflow
 
-1. Acceder a Anaconda prompt: utilizando el comando 
-source anaconda3/bin/activate
+### 1.1 Execute anaconda prompt by writting in a terminal: 
+	-`source anaconda3/bin/activate`
 
-2. Acceder al entorno virtual: conda activate tensor
+### 1.2. Run the virtual enviroment: 
+	-`conda activate tensor`
