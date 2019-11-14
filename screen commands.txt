@@ -1,3 +1,0 @@
-Remove screen: screen -X -D id kill
-Attach screen: screen -r id
-Show all screen sessions: screen -ls
