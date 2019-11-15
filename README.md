@@ -31,7 +31,7 @@ Machine learning network for monitoring areas.
 -	`conda install -c conda-forge earthengine-api`
 
 ***VERY IMPORTANT***:
-If you're using an AMD, and has installed 'plaidml', you have to include, at the begining of the python code, the following code: `import plaidml.keras plaidml.keras.install_backend()`
+If you're using an AMD, and have installed 'plaidml', you have to include, at the begining of the python code, the following code: `import plaidml.keras plaidml.keras.install_backend()`
 
 ## 2. Running tensorflow
 
