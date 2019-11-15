@@ -13,7 +13,7 @@ Machine learning network for monitoring areas.
 	- For example: `conda create -n tensor`
 
 ###	1.3. Install tensorflow 1.15
-- Activate the virtual environment that you has created before: `activate tensor`
+- Activate the virtual environment that you have created before: `activate tensor`
 -	Install tensorflow: `conda install -c conda-forge tensorflow==1.15`
 
 ### 1.4. Install keras
