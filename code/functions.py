@@ -81,7 +81,7 @@ def defineArgParsersTrain():
   parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
   parser.add_argument("--labels",type=str, default='urban,vegetation,water', help="label for each class type")
   parser.add_argument("--nNeurons",type=str, default='16,8', help="Number of neurons that will be used in the dense layers. The number of neurons will be divided by two in each layer. ")
-  parser.add_argument("--shuffle",type=str2bool, default="n", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
+  parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
   parser.add_argument("--monitor_stop",type=str, default="val_loss")
   parser.add_argument("--monitor_reduce_lr",type=str, default="val_loss")
   parser.add_argument("--monitor_modelCheckPoint",type=str, default="val_loss")
