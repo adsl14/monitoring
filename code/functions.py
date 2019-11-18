@@ -107,10 +107,14 @@ def defineArgParsersTest():
 	help="Path where the experiments are stored.")
 	parser.add_argument("--experiment_name", type=str, default='land_classification',
 	help="Name of the experiment.")
-	parser.add_argument("--model_parameters", type=str, default='lr|1.0e-02-bs|8-drop|0.00-hla|2-hne|[16, 8]-epo|300',
-	help="Name of the experiment.")
+	parser.add_argument("--model_parameters", type=str, default='',
+	help="Parameters name of the model.")
 	parser.add_argument("--testDataName", type=str, default='Testing_demo.csv',
-	help="train dataset's name.")
+	help="test dataset's name.")
+	parser.add_argument("--output_name_loss", type=str, default='results_loss.csv',
+	help="csv name where we will save the loss of the predictions.")
+	parser.add_argument("--output_name_predictions", type=str, default='results_predictions.csv',
+	help="csv name where we will save the results of the predictions.")
 	parser.add_argument("--labels",type=str, default='urban,vegetation,water', help="label for each class type")
 
 	return parser.parse_args()
