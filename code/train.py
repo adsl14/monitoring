@@ -8,12 +8,15 @@ import tensorflow as tf
 
 from functions import addNDVI, normalizedDifference, cleanExperimentFolder, defineArgParsersTrain
 
-# Fijar semillas para reproducibilidad de resultados (antes de importar Keras)
+# Fix the seed
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
 np.random.seed(seed)
 rn.seed(seed)
 tf.set_random_seed(seed)
+import keras.backend as k
+sess = tf.get_default_session()
+k.set_session(sess)
 
 import keras
 from keras.optimizers import adam
@@ -42,7 +45,7 @@ def trainModel(args):
 	x_train = train_n[:,:-1]
 	y_train = train_n[:,-1]
 
-	# Get the x_val and y_val
+	# Get the x_val and y_val. It will do the shuffle
 	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2) # 80% train, 20% val
 
 	# convert class vectors to binary class matrices
@@ -61,7 +64,7 @@ def trainModel(args):
 	nLayers = len(args.nNeurons)
 
 	# Experiment folder and name
-	nameModel = 'lr|%.1e-bs|%d-drop|%.2f-hla|%d-hne|%s-epo|%d' % (args.learning_rate,args.batch_size,
+	nameModel = 'lr%.1e-bs%d-drop%.2f-hla%d-hne%s-epo%d' % (args.learning_rate,args.batch_size,
 		args.percentageDropout,nLayers,str(args.nNeurons),args.epochs)
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
 	experimentPath = os.path.join(args.experiment_folder,args.experiment_name,nameModel)

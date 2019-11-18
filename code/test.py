@@ -124,7 +124,7 @@ def testModels(args):
 	# Number of features
 	num_features_input = x_test.shape[1]
 
-	with open(args.output_name_loss,mode='w') as output_file:
+	with open(args.output_name_loss,mode='a') as output_file:
 
 		output_writer = csv.writer(output_file, delimiter=',')
 		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
