@@ -80,7 +80,7 @@ def testModel(args):
 	y_test = keras.utils.to_categorical(y_test, num_classes)
 
 	# Add NDVI
-	x_test = addNDVI(x_test)
+	#x_test = addNDVI(x_test)
 
 	# Number of features
 	num_features_input = x_test.shape[1]

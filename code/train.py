@@ -54,8 +54,8 @@ def trainModel(args):
 	y_val = keras.utils.to_categorical(y_val, num_classes)
 
 	# Add NDVI
-	x_train = addNDVI(x_train)
-	x_val = addNDVI(x_val)
+	#x_train = addNDVI(x_train)
+	#x_val = addNDVI(x_val)
 
 	# Number of features
 	num_features_input = x_train.shape[1]
