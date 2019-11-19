@@ -106,7 +106,8 @@ def defineArgParsersTest():
 	help="Path where the experiments are stored.")
 	parser.add_argument("--experiment_name", type=str, default='land_classification',
 	help="Name of the experiment.")
-	parser.add_argument("--model_parameters_path", type=str, default='',
+	parser.add_argument("--model_parameters_path", type=str, 
+	default='experiments/land_classification/lr1.0e-02-bs8-drop0.30-hla5-hne[64, 32, 16, 8, 4]-epo300"',
 	help="Parameters name of the model.")
 	parser.add_argument("--testDataName", type=str, default='Testing_demo.csv',
 	help="test dataset's name.")
