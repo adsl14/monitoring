@@ -46,7 +46,8 @@ def trainModel(args):
 	y_train = train_n[:,-1]
 
 	# Get the x_val and y_val. It will do the shuffle
-	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2) # 80% train, 20% val
+	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, 
+	test_size=0.2, random_state=seed) # 80% train, 20% val
 
 	# convert class vectors to binary class matrices
 	y_train = keras.utils.to_categorical(y_train, num_classes)
