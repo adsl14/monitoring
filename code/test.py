@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import csv
 from sklearn.metrics import confusion_matrix
+import numpy as np
 
 def show_confussionMatrix(matrix,labels):
 
@@ -85,7 +86,7 @@ def testModel(args):
 	num_features_input = x_test.shape[1]
 
 	# Get a list of all saved models
-	ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,args.model_parameters)
+	ExperimentPath = os.path.join(args.model_parameters_path)
 	models = os.listdir(ExperimentPath)
 	models.sort(key=lambda x: os.path.getmtime(os.path.join(ExperimentPath,x)),reverse=True)
 
@@ -98,6 +99,14 @@ def testModel(args):
 	with open(args.experiment_name + '-' + args.output_name_predictions, mode='w') as output_file:
 
 		output_writer = csv.writer(output_file, delimiter=',')
+
+		# Evaluate test data
+		score = model.evaluate(x_test, y_test, verbose=0)
+
+		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
+		output_writer.writerow([os.path.join(args.model_parameters_path,models[0]),score[0], score[1]])
+
+		output_writer.writerow([])
 
 		name_label = ['Real/Predicted']
 		name_label.extend(labels)
@@ -113,12 +122,12 @@ def testModel(args):
 			row.extend(cm[i,:])
 			output_writer.writerow(row)
 
-		# Evaluate test data
-		score = model.evaluate(x_test, y_test, verbose=0)
-
+		# Write each area prediction
+		num_samples = y_test.shape[0]
 		output_writer.writerow([])
-		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
-		output_writer.writerow([os.path.join(args.model_parameters,models[0]),score[0], score[1]])
+		output_writer.writerow(['Area', 'Real', 'Predicted'])
+		for i in range(0,num_samples):
+			output_writer.writerow([i+1, labels[np.argmax(y_test[i])],labels[np.argmax(predictions[i])]])
 
 		# Clean terminal
 		print('\033c')
@@ -234,12 +243,11 @@ def testModels(args):
 		# Closing the file
 		output_file.close()
 
-
 def main():
 
 	args = defineArgParsersTest()
 
-	if args.model_parameters == '':
+	if args.model_parameters_path == '':
 		testModels(args)
 	else:
 		testModel(args)
