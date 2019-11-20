@@ -1,6 +1,26 @@
 import numpy as np
+import re
 import os
 import argparse
+
+# Add NDVI to numpy array
+def addNDVI(numpy_array):
+
+  """Add NDVI to the dataset.
+  Args: 
+    features: a dictionary of input tensors keyed by feature name.
+    label: the target label
+  
+  Returns:
+    A numpy array with an NDVI added.
+  """
+  ndvi_array = []
+  tam = numpy_array.shape[0]
+
+  for i in range(0,tam):
+    ndvi_array.append([normalizedDifference(numpy_array[i,3],numpy_array[i,2])])
+
+  return np.append(numpy_array,ndvi_array, axis=1)
 
 # Normalized the difference between B8 and B4
 def normalizedDifference(a, b):
@@ -23,16 +43,21 @@ def normalizedDifference(a, b):
   else:
     return nd_inf
 
+def atoi(text):
+    return int(text) if text.isdigit() else text
+def natural_keys(text):
+    return [ atoi(c) for c in re.split('(\d+)',text) ]
+
 # When the network has finished the training, all the generated models will be erased, unless the three best models.
 def cleanExperimentFolder(folderNameExperimentPath):
 
   models = os.listdir(folderNameExperimentPath)
 
-  # Sort by date creation
-  models.sort(key=lambda x: os.path.getmtime(os.path.join(folderNameExperimentPath,x)),reverse=True)
+  # Sort by natural order
+  models.sort(key=natural_keys,reverse=True)
 
   # Remove from the list, the folder 'logs'
-  models = models[:-1]
+  models = models[1:]
 
   # We check if there is, at least, three min model saved
   if len(models) > 3:
@@ -42,25 +67,6 @@ def cleanExperimentFolder(folderNameExperimentPath):
       print("Experiment %s removed" %(model_path))
   else:
     print("Folder %s ignored" %(folderNameExperimentPath))
-
-# Add NDVI to numpy array
-def addNDVI(numpy_array):
-
-  """Add NDVI to the dataset.
-  Args: 
-    features: a dictionary of input tensors keyed by feature name.
-    label: the target label
-  
-  Returns:
-    A numpy array with an NDVI added.
-  """
-  ndvi_array = []
-  tam = numpy_array.shape[0]
-
-  for i in range(0,tam):
-    ndvi_array.append([normalizedDifference(numpy_array[i,3],numpy_array[i,2])])
-
-  return np.append(numpy_array,ndvi_array, axis=1)
 
 # Arguments for the training
 def defineArgParsersTrain():
@@ -81,7 +87,7 @@ def defineArgParsersTrain():
   parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
   parser.add_argument("--labels",type=str, default='urban,vegetation,water', help="label for each class type")
   parser.add_argument("--nNeurons",type=str, default='16,8', help="Number of neurons that will be used in the dense layers. The number of neurons will be divided by two in each layer. ")
-  parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
+  parser.add_argument("--shuffle",type=str2bool, default="n", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
   parser.add_argument("--monitor_stop",type=str, default="val_loss")
   parser.add_argument("--monitor_reduce_lr",type=str, default="val_loss")
   parser.add_argument("--monitor_modelCheckPoint",type=str, default="val_loss")
@@ -106,8 +112,7 @@ def defineArgParsersTest():
 	help="Path where the experiments are stored.")
 	parser.add_argument("--experiment_name", type=str, default='land_classification',
 	help="Name of the experiment.")
-	parser.add_argument("--model_parameters_path", type=str, 
-	default='experiments/land_classification/lr1.0e-02-bs8-drop0.30-hla5-hne[64, 32, 16, 8, 4]-epo300"',
+	parser.add_argument("--model_parameters_path", type=str, default='',
 	help="Parameters name of the model.")
 	parser.add_argument("--testDataName", type=str, default='Testing_demo.csv',
 	help="test dataset's name.")
