@@ -1,4 +1,4 @@
-from functions import defineArgParsersTest, addNDVI
+from functions import defineArgParsersTest, addNDVI, natural_keys
 from keras.models import load_model
 import keras
 import pandas as pd
@@ -88,7 +88,9 @@ def testModel(args):
 	# Get a list of all saved models
 	ExperimentPath = os.path.join(args.model_parameters_path)
 	models = os.listdir(ExperimentPath)
-	models.sort(key=lambda x: os.path.getmtime(os.path.join(ExperimentPath,x)),reverse=True)
+	models.sort(key=natural_keys,reverse=True)
+	# Remove the 'log' folder
+	models = models[1:]
 
 	# Load the best model for that experiment
 	model = load_model(os.path.join(ExperimentPath,models[0]))
@@ -166,7 +168,7 @@ def testModels(args):
 	y_test = keras.utils.to_categorical(y_test, num_classes)
 
 	# Add NDVI
-	x_test = addNDVI(x_test)
+	#x_test = addNDVI(x_test)
 
 	# Number of features
 	num_features_input = x_test.shape[1]
