@@ -14,8 +14,9 @@ os.environ['PYTHONHASHSEED'] = str(seed)
 np.random.seed(seed)
 rn.seed(seed)
 tf.set_random_seed(seed)
+#tf.random.set_seed(seed)
 import keras.backend as k
-sess = tf.get_default_session()
+sess = tf.compat.v1.get_default_session()
 k.set_session(sess)
 
 import keras
@@ -46,8 +47,7 @@ def trainModel(args):
 	y_train = train_n[:,-1]
 
 	# Get the x_val and y_val. It will do the shuffle
-	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, 
-	test_size=0.2, random_state=seed) # 80% train, 20% val
+	x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=seed) # 80% train, 20% val       
 
 	# convert class vectors to binary class matrices
 	y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -89,17 +89,20 @@ def trainModel(args):
 
 	# Create the model
 	model = Sequential()
-	model.add(Dense(args.nNeurons[0], activation=tf.nn.relu, input_dim=num_features_input))
+	model.add(Dense(args.nNeurons[0], activation=tf.nn.relu, input_dim=num_features_input,
+		kernel_initializer=keras.initializers.glorot_uniform(seed=seed)))
 
 	# Check if the user has, in the input, more than one hidden layer
 	if nLayers > 1:
 		for i in range(1,nLayers):
-			model.add(Dense(args.nNeurons[i], activation=tf.nn.relu))
+			model.add(Dense(args.nNeurons[i], activation=tf.nn.relu,
+				kernel_initializer=keras.initializers.glorot_uniform(seed=seed)))
 
 	# Check if the user wants to use a dropout layer
 	if args.percentageDropout > 0.0:
 		model.add(Dropout(args.percentageDropout))
-	model.add(Dense(num_classes, activation='softmax'))
+	model.add(Dense(num_classes, activation='softmax', 
+		kernel_initializer=keras.initializers.glorot_uniform(seed=seed)))
 
 	# Show the neural net
 	print(model.summary())
