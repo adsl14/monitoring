@@ -50,10 +50,10 @@ def WriteResultsModel(best_model_path,output_writer, x_test, y_test, labels):
 	print("------------------------")
 	print("Score")
 	print('Test loss:', score[0])
-	print('Test accuracy:', score[1])
+	print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
 	print("------------------------")
 
-	output_writer.writerow([best_model_path, score[0], score[1]])
+	output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
 	print("Model %s results saved correctly" % (best_model_path))
 
 def testModel(args):
@@ -89,11 +89,11 @@ def testModel(args):
 	ExperimentPath = os.path.join(args.model_parameters_path)
 	models = os.listdir(ExperimentPath)
 	models.sort(key=natural_keys,reverse=True)
-	# Remove the 'log' folder
-	models = models[1:]
+	# Get the best model for one model experiment parameters
+	best_model_name = models[1]
 
 	# Load the best model for that experiment
-	model = load_model(os.path.join(ExperimentPath,models[0]))
+	model = load_model(os.path.join(ExperimentPath,best_model_name))
 
 	# Get the predictions
 	predictions = model.predict(x_test)
@@ -106,7 +106,7 @@ def testModel(args):
 		score = model.evaluate(x_test, y_test, verbose=0)
 
 		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
-		output_writer.writerow([os.path.join(args.model_parameters_path,models[0]),score[0], score[1]])
+		output_writer.writerow([os.path.join(args.model_parameters_path,best_model_name),score[0],str(round(score[1]*100,2)) + ' %'])
 
 		output_writer.writerow([])
 
@@ -131,6 +131,9 @@ def testModel(args):
 		for i in range(0,num_samples):
 			output_writer.writerow([i+1, labels[np.argmax(y_test[i])],labels[np.argmax(predictions[i])]])
 
+		# Closing the file
+		output_file.close()
+
 		# Clean terminal
 		print('\033c')
 
@@ -141,7 +144,7 @@ def testModel(args):
 		print("------------------------")
 		print("Score")
 		print('Test loss:', score[0])
-		print('Test accuracy:', score[1])
+		print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
 		print("------------------------")
 
 def testModels(args):
@@ -195,11 +198,13 @@ def testModels(args):
 					# Get a list of all saved models and return the path where is the best one saved
 					ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
 					models = os.listdir(ExperimentPath)
-					models.sort(key=lambda x: os.path.getmtime(os.path.join(ExperimentPath,x)),reverse=True)
+					models.sort(key=natural_keys,reverse=True)
+					# Get the best model for one model experiment parameters
+					best_model_name = models[1]
 
 					# Get the path where the best model is located
 					best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
-						model_parameters,models[0])
+						model_parameters,best_model_name)
 
 					# Check if the model has already tested
 					exists, score = searchModelInFile(best_model_path,input_reader)
@@ -235,10 +240,12 @@ def testModels(args):
 				# Get a list of all saved models
 				ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
 				models = os.listdir(ExperimentPath)
-				models.sort(key=lambda x: os.path.getmtime(os.path.join(ExperimentPath,x)),reverse=True)
+				models.sort(key=natural_keys,reverse=True)
+				# Get the best model for one model experiment parameters
+				best_model_name = models[1]
 
 				best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
-						model_parameters,models[0])
+						model_parameters,best_model_name)
 
 				WriteResultsModel(best_model_path,output_writer, x_test, y_test,labels)
 
