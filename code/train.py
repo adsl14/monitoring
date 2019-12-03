@@ -30,19 +30,22 @@ from keras.preprocessing import sequence
 def add_Dense_Layer(number, data):
 
     data = Dense(number, activation='relu',
-                 kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(data)  
+                 kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
+                 bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data)  
     return data
 def add_LSTM_Layer(number,return_sequence,data):
 
     data = LSTM(number, activation='relu', return_sequences=return_sequence,
                 kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
-                recurrent_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
+                recurrent_initializer=keras.initializers.glorot_uniform(seed=seed),
+                bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
     return data
 def add_CuDNNLSTM_Layer(number,return_sequence,data):
 
     data = CuDNNLSTM(number, return_sequences=return_sequence,
                 kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
-                recurrent_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
+                recurrent_initializer=keras.initializers.glorot_uniform(seed=seed),
+                bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
     return data
 def add_Conv1D_Layer(number,data):
 
