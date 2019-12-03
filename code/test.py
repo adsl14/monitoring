@@ -1,265 +1,233 @@
-from functions import defineArgParsersTest, addNDVI, natural_keys
+import os
+import numpy as np
+import random as rn
+import tensorflow as tf
+
+# Fix the seed
+seed = 42
+os.environ['PYTHONHASHSEED'] = str(seed)
+np.random.seed(seed)
+rn.seed(seed)
+tf.set_random_seed(seed)
+#tf.random.set_seed(seed)
+import keras.backend as k
+sess = tf.compat.v1.get_default_session()
+k.set_session(sess)
+
+from functions import defineArgParsersTest, natural_keys
+from train import loadSequenceExample
+from sklearn.metrics import confusion_matrix
 from keras.models import load_model
 import keras
 import pandas as pd
-import os
 import csv
-from sklearn.metrics import confusion_matrix
-import numpy as np
 
 def show_confussionMatrix(matrix,labels):
 
-	row = matrix.shape[0]
-	cols = matrix.shape[1]
+    row = matrix.shape[0]
+    cols = matrix.shape[1]
 
-	print('Real | Predicted | Amount')
+    print('Real | Predicted | Amount')
 
-	for i in range(0,row):
-		for j in range(0,cols):
-			print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
+    for i in range(0,row):
+        for j in range(0,cols):
+            print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
 
 def searchModelInFile(model_name,file):
 
-	for row in file:
-		if model_name == row[0]:
-			return True, row[1:]
+    for row in file:
+        if model_name == row[0]:
+            return True, row[1:]
 
-	return False, []
+    return False, []
 
 def WriteResultsModel(best_model_path,output_writer, x_test, y_test, labels):
 
-	# Load the best model for that experiment
-	model = load_model(best_model_path)
+    # Load the best model for that experiment
+    model = load_model(best_model_path)
 
-	# Get the predictions
-	predictions = model.predict(x_test)
+    # Get the predictions
+    predictions = model.predict(x_test)
 
-	# Confusion matrix
-	cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
+    # Confusion matrix
+    cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
 
-	# Evaluate test data
-	score = model.evaluate(x_test, y_test, verbose=0)
+    # Evaluate test data
+    score = model.evaluate(x_test, y_test, verbose=0)
 
-	# Clean terminal
-	print('\033c')
+    # Clean terminal
+    print('\033c')
 
-	print("RESULTS")
-	print("------------------------")
-	print("Confusion matrix")
-	show_confussionMatrix(cm,labels)
-	print("------------------------")
-	print("Score")
-	print('Test loss:', score[0])
-	print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
-	print("------------------------")
+    print("RESULTS")
+    print("------------------------")
+    print("Confusion matrix")
+    show_confussionMatrix(cm,labels)
+    print("------------------------")
+    print("Score")
+    print('Test loss:', score[0])
+    print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
+    print("------------------------")
 
-	output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
-	print("Model %s results saved correctly" % (best_model_path))
+    output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
+    print("Model %s results saved correctly" % (best_model_path))
 
-def testModel(args):
+def testModel(args, x_test, y_test):
 
-	labels = args.labels.split(',')
-	num_classes = len(labels)
+    labels = args.labels.split(',')
 
-	# Get the path where the csv is located
-	parentPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	testFilePath= os.path.join(parentPath,args.datasets_path,args.testDataName)
+    # Get a list of all saved models
+    ExperimentPath = os.path.join(args.model_parameters_path)
+    models = os.listdir(ExperimentPath)
+    models.sort(key=natural_keys,reverse=True)
+    # Get the best model for one model experiment parameters
+    best_model_name = models[1]
 
-	# Load csv test
-	testDataFrame = pd.read_csv(testFilePath)
-	print('csv for testing loaded')
+    # Load the best model for that experiment
+    model = load_model(os.path.join(ExperimentPath,best_model_name))
 
-	# Get a numpy array of the dataframe
-	test_n = testDataFrame.to_numpy()
+    # Get the predictions
+    predictions = model.predict(x_test)
 
-	# Split the input and output values
-	x_test = test_n[:,:-1]
-	y_test = test_n[:,-1]
+    with open(args.experiment_name + '-' + args.output_name_predictions, mode='w') as output_file:
 
-	# convert class vectors to binary class matrices
-	y_test = keras.utils.to_categorical(y_test, num_classes)
+        output_writer = csv.writer(output_file, delimiter=',')
 
-	# Add NDVI
-	#x_test = addNDVI(x_test)
+        # Evaluate test data
+        score = model.evaluate(x_test, y_test, verbose=0)
 
-	# Number of features
-	num_features_input = x_test.shape[1]
+        output_writer.writerow(['Name', 'Loss', 'Accuracy'])
+        output_writer.writerow([os.path.join(args.model_parameters_path,best_model_name),score[0],str(round(score[1]*100,2)) + ' %'])
 
-	# Get a list of all saved models
-	ExperimentPath = os.path.join(args.model_parameters_path)
-	models = os.listdir(ExperimentPath)
-	models.sort(key=natural_keys,reverse=True)
-	# Get the best model for one model experiment parameters
-	best_model_name = models[1]
+        output_writer.writerow([])
 
-	# Load the best model for that experiment
-	model = load_model(os.path.join(ExperimentPath,best_model_name))
+        name_label = ['Real/Predicted']
+        name_label.extend(labels)
+        output_writer.writerow(name_label)
 
-	# Get the predictions
-	predictions = model.predict(x_test)
+        # Confusion matrix
+        cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
 
-	with open(args.experiment_name + '-' + args.output_name_predictions, mode='w') as output_file:
+        # Write confusion matrix in file
+        for i in range(0,num_classes):
 
-		output_writer = csv.writer(output_file, delimiter=',')
+            row = [labels[i]]
+            row.extend(cm[i,:])
+            output_writer.writerow(row)
 
-		# Evaluate test data
-		score = model.evaluate(x_test, y_test, verbose=0)
+        # Write each area prediction
+        num_samples = y_test.shape[0]
+        output_writer.writerow([])
+        output_writer.writerow(['Area', 'Real', 'Predicted'])
+        for i in range(0,num_samples):
+            output_writer.writerow([i+1, labels[np.argmax(y_test[i])],labels[np.argmax(predictions[i])]])
 
-		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
-		output_writer.writerow([os.path.join(args.model_parameters_path,best_model_name),score[0],str(round(score[1]*100,2)) + ' %'])
+        # Closing the file
+        output_file.close()
 
-		output_writer.writerow([])
+        # Clean terminal
+        print('\033c')
 
-		name_label = ['Real/Predicted']
-		name_label.extend(labels)
-		output_writer.writerow(name_label)
+        print("RESULTS")
+        print("------------------------")
+        print("Confusion matrix")
+        show_confussionMatrix(cm,labels)
+        print("------------------------")
+        print("Score")
+        print('Test loss:', score[0])
+        print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
+        print("------------------------")
 
-		# Confusion matrix
-		cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
+def testModels(args, x_test, y_test):
 
-		# Write confusion matrix in file
-		for i in range(0,num_classes):
+    labels = args.labels.split(',')
 
-			row = [labels[i]]
-			row.extend(cm[i,:])
-			output_writer.writerow(row)
+    fileOutputName = args.experiment_name + '-' + args.output_name_loss
 
-		# Write each area prediction
-		num_samples = y_test.shape[0]
-		output_writer.writerow([])
-		output_writer.writerow(['Area', 'Real', 'Predicted'])
-		for i in range(0,num_samples):
-			output_writer.writerow([i+1, labels[np.argmax(y_test[i])],labels[np.argmax(predictions[i])]])
+    # Check if the file already exists
+    if os.path.isfile(fileOutputName):
+        
+        fileOutputNameAux = 'temp -' + args.experiment_name + '-' + args.output_name_loss
 
-		# Closing the file
-		output_file.close()
+        with open(fileOutputName,mode='r') as input_file:
+            with open(fileOutputNameAux,mode='w') as output_file:
 
-		# Clean terminal
-		print('\033c')
+                # Write the header
+                output_writer = csv.writer(output_file, delimiter=',')
+                output_writer.writerow(input_file.readline().rstrip('\n').split(','))
+                input_reader = csv.reader(input_file)
 
-		print("RESULTS")
-		print("------------------------")
-		print("Confusion matrix")
-		show_confussionMatrix(cm,labels)
-		print("------------------------")
-		print("Score")
-		print('Test loss:', score[0])
-		print('Test accuracy:', str(round(score[1]*100,2)) + ' %')
-		print("------------------------")
+                # List of models parameters
+                models_parameters = os.listdir(os.path.join(args.experiment_folder,args.experiment_name))
+                for model_parameters in models_parameters:
 
-def testModels(args):
+                    # Get a list of all saved models and return the path where is the best one saved
+                    ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
+                    models = os.listdir(ExperimentPath)
+                    models.sort(key=natural_keys,reverse=True)
+                    # Get the best model for one model experiment parameters
+                    best_model_name = models[1]
 
-	labels = args.labels.split(',')
-	num_classes = len(labels)
+                    # Get the path where the best model is located
+                    best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
+                        model_parameters,best_model_name)
 
-	# Get the path where the csv is located
-	parentPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	testFilePath= os.path.join(parentPath,args.datasets_path,args.testDataName)
+                    # Check if the model has already tested
+                    exists, score = searchModelInFile(best_model_path,input_reader)
 
-	# Load csv test
-	testDataFrame = pd.read_csv(testFilePath)
-	print('csv for testing loaded')
+                    # The model has already tested
+                    if exists:
+                        print('Ignored the model %s' %(best_model_path))
+                        output_writer.writerow([best_model_path, score[0], score[1]])
+                    # Test the new model
+                    else:
+                        WriteResultsModel(best_model_path,output_writer,x_test,y_test,labels)
 
-	# Get a numpy array of the dataframe
-	test_n = testDataFrame.to_numpy()
+        # Remove the original file
+        os.remove(fileOutputName)
+        # Rename the temporal file
+        os.rename(fileOutputNameAux,fileOutputName)
 
-	# Split the input and output values
-	x_test = test_n[:,:-1]
-	y_test = test_n[:,-1]
+        # Closing the files
+        input_file.close()
+        output_file.close()
 
-	# convert class vectors to binary class matrices
-	y_test = keras.utils.to_categorical(y_test, num_classes)
+    else:
 
-	# Add NDVI
-	#x_test = addNDVI(x_test)
+        with open(fileOutputName,mode='a') as output_file:
 
-	# Number of features
-	num_features_input = x_test.shape[1]
+            output_writer = csv.writer(output_file, delimiter=',')
+            output_writer.writerow(['Name', 'Loss', 'Accuracy'])
 
-	fileOutputName = args.experiment_name + '-' + args.output_name_loss
+            # List of models parameters
+            models_parameters = os.listdir(os.path.join(args.experiment_folder,args.experiment_name))
+            for model_parameters in models_parameters:
 
-	# Check if the file already exists
-	if os.path.isfile(fileOutputName):
-		
-		fileOutputNameAux = 'temp -' + args.experiment_name + '-' + args.output_name_loss
+                # Get a list of all saved models
+                ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
+                models = os.listdir(ExperimentPath)
+                models.sort(key=natural_keys,reverse=True)
+                # Get the best model for one model experiment parameters
+                best_model_name = models[1]
 
-		with open(fileOutputName,mode='r') as input_file:
-			with open(fileOutputNameAux,mode='w') as output_file:
+                best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
+                        model_parameters,best_model_name)
 
-				# Write the header
-				output_writer = csv.writer(output_file, delimiter=',')
-				output_writer.writerow(input_file.readline().rstrip('\n').split(','))
-				input_reader = csv.reader(input_file)
+                WriteResultsModel(best_model_path,output_writer, x_test, y_test,labels)
 
-				# List of models parameters
-				models_parameters = os.listdir(os.path.join(args.experiment_folder,args.experiment_name))
-				for model_parameters in models_parameters:
-
-					# Get a list of all saved models and return the path where is the best one saved
-					ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
-					models = os.listdir(ExperimentPath)
-					models.sort(key=natural_keys,reverse=True)
-					# Get the best model for one model experiment parameters
-					best_model_name = models[1]
-
-					# Get the path where the best model is located
-					best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
-						model_parameters,best_model_name)
-
-					# Check if the model has already tested
-					exists, score = searchModelInFile(best_model_path,input_reader)
-
-					# The model has already tested
-					if exists:
-						print('Ignored the model %s' %(best_model_path))
-						output_writer.writerow([best_model_path, score[0], score[1]])
-					# Test the new model
-					else:
-						WriteResultsModel(best_model_path,output_writer,x_test,y_test,labels)
-
-		# Remove the original file
-		os.remove(fileOutputName)
-		# Rename the temporal file
-		os.rename(fileOutputNameAux,fileOutputName)
-
-		# Closing the files
-		input_file.close()
-		output_file.close()
-
-	else:
-
-		with open(fileOutputName,mode='a') as output_file:
-
-			output_writer = csv.writer(output_file, delimiter=',')
-			output_writer.writerow(['Name', 'Loss', 'Accuracy'])
-
-			# List of models parameters
-			models_parameters = os.listdir(os.path.join(args.experiment_folder,args.experiment_name))
-			for model_parameters in models_parameters:
-
-				# Get a list of all saved models
-				ExperimentPath = os.path.join(args.experiment_folder,args.experiment_name,model_parameters)
-				models = os.listdir(ExperimentPath)
-				models.sort(key=natural_keys,reverse=True)
-				# Get the best model for one model experiment parameters
-				best_model_name = models[1]
-
-				best_model_path = os.path.join(args.experiment_folder,args.experiment_name,
-						model_parameters,best_model_name)
-
-				WriteResultsModel(best_model_path,output_writer, x_test, y_test,labels)
-
-		# Closing the file
-		output_file.close()
+        # Closing the file
+        output_file.close()
 
 def main():
 
-	args = defineArgParsersTest()
+    args = defineArgParsersTest()
 
-	if args.model_parameters_path == '':
-		testModels(args)
-	else:
-		testModel(args)
+    # Load the dataset
+    x_train, y_train, x_test, y_test, time_step, num_features_input, num_classes = loadSequenceExample(args)
+
+    if args.model_parameters_path == '':
+        testModels(args, x_test, y_test)
+    else:
+        testModel(args, x_test, y_test)
 
 if __name__ == "__main__":
-	main()
+    main()
