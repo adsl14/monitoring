@@ -77,16 +77,19 @@ def defineArgParsersTrain():
     help="Path where the dataset CSV files are stored.")
   parser.add_argument("--experiment_folder", type=str, default='experiments',
     help="Path where the experiments are stored.")
-  parser.add_argument("--experiment_name", type=str, default='land_classification',
+  parser.add_argument("--experiment_name", type=str, default='activity',
     help="Name of the experiment.")
   parser.add_argument("--trainDataName", type=str, default='Training_demo.csv',
     help="train dataset's name.")
   parser.add_argument("--testDataName", type=str, default='Testing_demo.csv',
     help="train dataset's name.")
+  parser.add_argument("--typeNetwork",type=str, default='LSTM', help="NN, LSTM, LSTM_FCN, CuDNNLSTM,CuDNNLSTM_FCN")
   parser.add_argument("--percentageDropout",type=float, default=0.0, help="How many links of the network will be ommited in order to avoid overfitting")
   parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
-  parser.add_argument("--labels",type=str, default='urban,vegetation,water', help="label for each class type")
-  parser.add_argument("--nNeurons",type=str, default='16,8', help="Number of neurons that will be used in the dense layers. The number of neurons will be divided by two in each layer. ")
+  parser.add_argument("--labels",type=str, default='no,yes', help="label for each class type")
+  parser.add_argument("--nNeurons",type=str, default='16,8', help="Number of neurons that will be used in the dense layers.")
+  parser.add_argument("--nNeuronsSequence",type=str, default='128,128', help="Number of neurons that will be used in the LSTM layers.")
+  parser.add_argument("--nNeuronsConv1D",type=str, default='128,256,128', help="Number of neurons that will be used in the Conv layers.")  
   parser.add_argument("--shuffle",type=str2bool, default="n", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
   parser.add_argument("--monitor_stop",type=str, default="val_loss")
   parser.add_argument("--monitor_reduce_lr",type=str, default="val_loss")
@@ -110,7 +113,7 @@ def defineArgParsersTest():
 	help="Path where the dataset CSV files are stored.")
 	parser.add_argument("--experiment_folder", type=str, default='experiments',
 	help="Path where the experiments are stored.")
-	parser.add_argument("--experiment_name", type=str, default='land_classification',
+	parser.add_argument("--experiment_name", type=str, default='activity',
 	help="Name of the experiment.")
 	parser.add_argument("--model_parameters_path", type=str, default='',
 	help="Parameters name of the model.")
@@ -120,7 +123,7 @@ def defineArgParsersTest():
 	help="csv name where we will save the loss of the predictions.")
 	parser.add_argument("--output_name_predictions", type=str, default='results_predictions.csv',
 	help="csv name where we will save the results of the predictions.")
-	parser.add_argument("--labels",type=str, default='urban,vegetation,water', help="label for each class type")
+	parser.add_argument("--labels",type=str, default='no,yes', help="label for each class type")
 
 	return parser.parse_args()
 
