@@ -3,10 +3,11 @@
 
 Machine learning network for monitoring areas.
 
-## Install Tensorflow in Windows 10
+## Install Earth Engine API and Tensorflow in Windows 10
 
-### 1. Software we need to install
+### 1. Software
 
+* Earth Engine API
 * NVIDIA CUDA Toolkit 10.0
 * NVIDIA cuDNN v7.6.5
 * Python 3.7
@@ -26,10 +27,11 @@ Machine learning network for monitoring areas.
 
 #### 4.1 Install Anaconda: [Anaconda]:(https://www.anaconda.com/distribution/)
 
-### 5. Install tensorflow
+### 5. Install Earth Engine API and Tensorflow
 
 #### 5.1 Open the 'Anaconda prompt'
 
-#### 5.2 Write the following in the command line in order to install tensorflow:
+#### 5.2 Write the following in the command line in order to install earthengine and then tensorflow:
 1. Activate the virtual environment: `activate keras-gpu`
+2. Install earthengine: `pip install earthengine-api`
 2. Install tensorflow: `pip install tensorflow-gpu==1.15`
