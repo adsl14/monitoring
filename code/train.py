@@ -2,30 +2,28 @@ import pandas as pd
 import time
 import os
 import re
+import argparse
 import numpy as np
+import random as rn
+import threading
+import tensorflow as tf
+
 from sklearn.utils import shuffle
 from sklearn import preprocessing # For normalization
+
 from pickle import dump # Save scaler
 from pickle import load # Load scaler
 from datetime import datetime as dateTime
 from matplotlib import pyplot as plt
 
-# Fix the seed
+#Fix the seed
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
-
-import random as rn
-rn.seed(seed)
-
-import numpy as np
 np.random.seed(seed)
-
-import tensorflow as tf
+rn.seed(seed)
 tf.set_random_seed(seed)
-
-from keras import backend as k
-session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
-sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+import keras.backend as k
+sess = tf.get_default_session()
 k.set_session(sess)
 
 import keras
@@ -35,76 +33,52 @@ from keras.layers import Dense, Dropout, Input, Flatten, LSTM, CuDNNLSTM, Conv1D
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint,TensorBoard
 
-tables_folder = 'tables'
-nameExperimentsFolder = 'experiments'
-radar_folder = 'radar'
-indexes_sentinel1_v2 = []
+# Give to the GPU what percentage will use
+def configureKerasForGPU(percentage):
 
-# *** Modifiable ***
-nameExperiment = 'rice'
-start_date = '2016-11-01' # PagoBásico 09-01, Rice 11-01
-end_date = '2017-02-01' # PagoBásico 08-31, Rice 02-01
+	# Configure keras backend GPU management
+	tf_config = tf.ConfigProto()
+	# Limit gpu memory utilization to a third of total
+	tf_config.gpu_options.per_process_gpu_memory_fraction = percentage
+	# tf_config.gpu_options.allow_growth = True
+	# Log on which device the operation runs
+	tf_config.log_device_placement = False
+	sess = tf.Session(config=tf_config)
+	k.set_session(sess)
 
-sentinels = ["A"] # A, B or AB
-orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
-indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
-indexes_sentinel2 = ['ICEDEX','B11']
-buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 means apply buffer.
-# *** Modifiable ***
+# Check if a string will return 'True' or 'False'
+def str2bool(val):
 
-# Update indexes_sentinel1 in other var
-for i in indexes_sentinel1:
-  for o in orbits:
-    for s in sentinels:
-      indexes_sentinel1_v2.append(i+"_"+s+"_"+o)
+	if val.lower() in ('yes', 'true', 't', 'y', '1'):
+		return True
 
-# *** Modifiable ***
-# The indexes we will use in order to train the model (indexes = indexes_sentinel1_v2 + indexes_sentinel2)
-indexes = indexes_sentinel1_v2
-# *** Modifiable ***
+	elif val.lower() in ('no', 'false', 'f', 'n', '0'):
+		return False
 
-interpolate = False # IMPORTANT!!!! Interpolate samples if we're going to use sentinel 1 AND 2, OR We are going to use sentinel-1 A AND B Separately
+	else:
+		raise argparse.ArgumentTypeError('Boolean value expected.')
 
-# Count the number of ocurrences of the indexes_sentinel1 (more than 2 means interpolate)
-for index_sentinel1 in indexes_sentinel1:
-  count = sum(index_sentinel1 in s for s in indexes)
-  if count > 1:
-    interpolate = True
-    break
+# All the parameters that has the script
+def defineArgParsers():
 
-# If the 'for' before doesn't detect that we have to interpolate, we search if we're going to use sentinel2. If there is at least one index, interpolate = True
-if not interpolate:
-  for index_sentinel2 in indexes_sentinel2:
-    count = sum(index_sentinel2 in s for s in indexes)
-    if count > 0:
-      interpolate = True
-      break
+	parser = argparse.ArgumentParser(description='Generate a model.')
+	parser.add_argument("--network",type=str, default='LSTM|CNN', help="Select the network you want to use (LSTM|CNN, LSTM+CNN, CNN+LSTM, LSTM)")
+	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
+	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier.")
+	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
+	parser.add_argument("--epochs",type=int, default=100, help="Number of epochs.")
+	parser.add_argument("--percentageDropout",type=float, default=0.2, help="How many links of the network will be ommited in order to avoid overfitting")
+	parser.add_argument("--patience",type=int, default=30, help="Number of epochs with no improvement after which training will be stopped.")
+	parser.add_argument("--patience_reduce_lr",type=int, default=8, help="Num epochs to reduce learning rate.")
+	parser.add_argument("--nNeuronsSequence",type=str, default="128", help="Number of units in the LSTM layer and number of LSTM layers")
+	parser.add_argument("--nNeuronsConv1D",type=str, default="64,64", help="Number of kernels in the Convolutional layer and number of Convolutionals layers")
+	parser.add_argument("--nNeurons",type=str, default="64", help="Number of neurons at the end of the network (hidden layers)")
+	parser.add_argument("--loss_function",type=str, default="categorical_crossentropy", help="loss function (categorical_crossentropy)")
+	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
+	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
 
-# *** Modifiable *** 
-labels_header = "water"
+	return parser.parse_args()
 
-labels = ['cumple', 'no_cumple']
-colors_label = ["cyan", "orange"]
-
-labels_correct = ['correcto', 'error']
-colors_correct = ["green", "red"]
-# *** Modifiable *** 
-
-campaing_date = start_date+"_"+end_date
-experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits))
-campaingFolder = experimentFolder + "_" + campaing_date
-num_files_radar = len(indexes_sentinel1_v2)
-
-path_radar = os.path.join(tables_folder,radar_folder)
-path_epoch = os.path.join(path_radar,campaingFolder)
-path_dataset = os.path.join(path_epoch,'dataset')
-
-# *** Modifiable *** 
-
-# Change this line in order to use other campaings (make sure the only difference is the date)
-campaings = ["rice_A_DESC,ASC_2016-11-01_2017-02-01", "rice_A_DESC,ASC_2016-11-01_2017-02-01"]
-
-# *** Modifiable ***
 
 def show_confussionMatrix(matrix,labels):
 
@@ -123,29 +97,6 @@ def time_convert(sec):
   hours = mins // 60
   mins = mins % 60
   print("Time Lapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
-
-# Give to the GPU what percentage will use
-def configureKerasForGPU(percentage):
-
-	# Configure keras backend GPU management
-	tf_config = tf.ConfigProto()
-	# Limit gpu memory utilization to a third of total
-	tf_config.gpu_options.per_process_gpu_memory_fraction = percentage
-	# tf_config.gpu_options.allow_growth = True
-	# Log on which device the operation runs
-	tf_config.log_device_placement = False
-	sess = tf.Session(config=tf_config)
-	set_session(sess)
-   
-def fixSeed():
-
-  os.environ['PYTHONHASHSEED'] = str(seed)
-  np.random.seed(seed)
-  rn.seed(seed)
-  session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,inter_op_parallelism_threads=1)
-  tf.set_random_seed(seed)
-  sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-  k.set_session(sess)
 
 def atoi(text):
 
@@ -319,7 +270,7 @@ def showSamples(tags_name):
 	total_test = num_testSamples.sum()
 	print("Total %d" %(total_test))
 
-def loadSamples(tags_name):
+def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,interpolate):
 
 	now = time.time()
 
@@ -460,7 +411,7 @@ def loadSamples(tags_name):
 
 	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
 
-def normalize_data(x_train, y_train, x_test, y_test):
+def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, experimentFolder):
 
 	path_scaler = os.path.join(nameExperimentsFolder,experimentFolder+'-scaler.pkl')
 
@@ -1165,22 +1116,111 @@ def TrainCuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, n
 
 def main():
 
-	tags_name = "tags_subarroz (2_classes).csv"
+	tables_folder = 'tables'
+	nameExperimentsFolder = 'experiments'
+	radar_folder = 'radar'
+	indexes_sentinel1_v2 = []
 
-	x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name)
+	# *** Modifiable ***
+	nameExperiment = 'rice'
 
-	x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test)
+	sentinels = ["A"] # A, B or AB
+	orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
+	indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
+	indexes_sentinel2 = ['ICEDEX','B11']
+	# *** Modifiable ***
 
+	# Update indexes_sentinel1 in other var
+	for i in indexes_sentinel1:
+	  for o in orbits:
+	    for s in sentinels:
+	      indexes_sentinel1_v2.append(i+"_"+s+"_"+o)
 
-	# EXAMPLES
+	# *** Modifiable ***
+	# The indexes we will use in order to train the model (indexes = indexes_sentinel1_v2 + indexes_sentinel2)
+	indexes = indexes_sentinel1_v2
+	# *** Modifiable ***
 
-	#TrainCuDNNLSTM_parallel_CNN(lr=1e-03,batch_size=16,epochs=100,percentageDropout=0.0,nNeuronsSequence=[128],nNeuronsConv1D=[64,64],nNeurons=[], patience_stop = 30, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+	interpolate = False # IMPORTANT!!!! Interpolate samples if we're going to use sentinel 1 AND 2, OR We are going to use sentinel-1 A AND B Separately
 
-	#TrainCuDNNLSTM_CNN(lr=1e-03,batch_size=16,epochs=100,percentageDropout=0.0, nNeuronsSequence=[128],nNeuronsConv1D=[64,64],nNeurons=[], patience_stop = 30, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+	# Count the number of ocurrences of the indexes_sentinel1 (more than 2 means interpolate)
+	for index_sentinel1 in indexes_sentinel1:
+	  count = sum(index_sentinel1 in s for s in indexes)
+	  if count > 1:
+	    interpolate = True
+	    break
 
-	#TrainCNN_CuDNNLSTM(lr=1e-03,batch_size=16,epochs=100,percentageDropout=0.0, nNeuronsSequence=[128],nNeuronsConv1D=[64,64],nNeurons=[], patience_stop = 30,x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+	# If the 'for' before doesn't detect that we have to interpolate, we search if we're going to use sentinel2. If there is at least one index, interpolate = True
+	if not interpolate:
+	  for index_sentinel2 in indexes_sentinel2:
+	    count = sum(index_sentinel2 in s for s in indexes)
+	    if count > 0:
+	      interpolate = True
+	      break
 
-	#TrainCuDNNLSTM(lr=1e-03,batch_size=16,epochs=100,percentageDropout=0.4, nNeuronsSequence=[128],nNeurons=[], patience_stop = 30, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+	# *** Modifiable *** 
+	labels_header = "water"
+
+	labels = ['cumple', 'no_cumple']
+	colors_label = ["cyan", "orange"]
+
+	labels_correct = ['correcto', 'error']
+	colors_correct = ["green", "red"]
+	# *** Modifiable *** 
+
+	experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits))
+
+	path_radar = os.path.join(tables_folder,radar_folder)
+
+	# *** Modifiable *** 
+
+	# Change this line in order to use other campaings (make sure the only difference is the date)
+	campaings = ["rice_A,B_DESC,ASC_2017-11-01_2018-02-01", "rice_A,B_DESC,ASC_2018-11-01_2019-02-01", "rice_A,B_DESC,ASC_2016-11-01_2017-02-01"]
+
+	# *** Modifiable ***
+
+	args = defineArgParsers()
+
+	if args.network in ["LSTM|CNN", "LSTM+CNN", "CNN+LSTM", "LSTM"]:
+
+		# Modify percentageGPU for the experiment
+		configureKerasForGPU(args.percentageGPU)
+
+		# Preparing data
+		tags_name = "tags_subarroz (2_classes).csv"
+		x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
+		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, experimentFolder)
+
+		# Create experiments folder
+		if not os.path.exists(nameExperimentsFolder):
+			os.mkdir(nameExperimentsFolder)
+
+		# Convert string into int array
+		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
+		nNeuronsConv1D = [int(i) for i in args.nNeuronsConv1D.split(",")]
+		nNeurons = [int(i) for i in args.nNeurons.split(",")]
+
+		if args.network == "LSTM|CNN":
+			TrainCuDNNLSTM_parallel_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
+				nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
+				min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+
+		elif args.network == "LSTM+CNN":
+			TrainCuDNNLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+
+		elif args.network == "CNN+LSTM":
+			TrainCNN_CuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+
+		elif args.network == "LSTM":
+			TrainCuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
+				patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
+				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+	else:
+		print("Error. That model is not defined.")
 
 if __name__ == '__main__':
 	main()
