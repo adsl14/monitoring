@@ -62,7 +62,7 @@ def str2bool(val):
 def defineArgParsers():
 
 	parser = argparse.ArgumentParser(description='Generate a model.')
-	parser.add_argument("--network",type=str, default='LSTM|CNN', help="Select the network you want to use (LSTM|CNN, LSTM+CNN, CNN+LSTM, LSTM)")
+	parser.add_argument("--network",type=str, default='LSTM|CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM)")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
 	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier.")
 	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
@@ -78,7 +78,6 @@ def defineArgParsers():
 	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
 
 	return parser.parse_args()
-
 
 def show_confussionMatrix(matrix,labels):
 
@@ -231,9 +230,6 @@ def time_convert(sec):
   hours = mins // 60
   mins = mins % 60
   print("Time Lapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
-
-
-
 
 def showSamples(tags_name):
 
@@ -466,9 +462,9 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, expe
 
 # TRAIN MODELS FUNCTIONS
 # LSTM || CNN
-def TrainCuDNNLSTM_parallel_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
+def TrainCuDNNLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
-	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes):
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, experimentFolder):
 
 	# hyperparameters
 	#lr = 1e-02
@@ -488,7 +484,7 @@ def TrainCuDNNLSTM_parallel_CNN(lr=1e-03, batch_size=16, epochs=100, percentageD
 	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
 	# Experiment folder and name
-	nameModel = 'CuDNNLSTM_parallel_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,
+	nameModel = 'CuDNNLSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,
 	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step)
 
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
@@ -641,7 +637,8 @@ def TrainCuDNNLSTM_parallel_CNN(lr=1e-03, batch_size=16, epochs=100, percentageD
 
 # LSTM -> CNN
 def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
-	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes):
+	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
+	nameExperimentsFolder, experimentFolder):
 
   # hyperparameters
   #lr = 1e-02
@@ -800,7 +797,8 @@ def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
 
 # CNN -> LSTM
 def TrainCNN_CuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
- patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes):
+ patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
+  nameExperimentsFolder, experimentFolder):
 
   # hyperparameters
   #lr = 1e-02
@@ -970,9 +968,9 @@ def TrainCNN_CuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     # Save figure
     plt.savefig(os.path.join(path_experiment, "history_" + nameModel + "_" + best_model_name + ".png"))
 
-# CNN
+# LSTM
 def TrainCuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
-	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes):
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, experimentFolder):
 
   # hyperparameters
   #lr = 1e-02
@@ -1186,14 +1184,14 @@ def main():
 		# Modify percentageGPU for the experiment
 		configureKerasForGPU(args.percentageGPU)
 
+		# Create experiments folder
+		if not os.path.exists(nameExperimentsFolder):
+			os.mkdir(nameExperimentsFolder)
+
 		# Preparing data
 		tags_name = "tags_subarroz (2_classes).csv"
 		x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
 		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, experimentFolder)
-
-		# Create experiments folder
-		if not os.path.exists(nameExperimentsFolder):
-			os.mkdir(nameExperimentsFolder)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
@@ -1201,24 +1199,25 @@ def main():
 		nNeurons = [int(i) for i in args.nNeurons.split(",")]
 
 		if args.network == "LSTM|CNN":
-			TrainCuDNNLSTM_parallel_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
+			TrainCuDNNLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
 				nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
-				min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+				min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
+				nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
 
 		elif args.network == "LSTM+CNN":
 			TrainCuDNNLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
-				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
 
 		elif args.network == "CNN+LSTM":
 			TrainCNN_CuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
-				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
 
 		elif args.network == "LSTM":
 			TrainCuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
 				patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
-				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes)
+				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
 	else:
 		print("Error. That model is not defined.")
 
