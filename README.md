@@ -3,40 +3,33 @@
 
 Machine learning network for monitoring areas.
 
-## 1. Installing tensorflow, keras, earth engine, etc.
+## Install Tensorflow in Windows 10
 
-### 1.1 Install Anaconda : [Anaconda](https://www.anaconda.com/distribution/?gclid=EAIaIQobChMIopvCio3R5QIV05rVCh1Isg3qEAAYASAAEgKoQfD_BwE#download-section)
+### 1. Software we need to install
 
-### 1.2. Create virtual environment
-- Execute Anaconda prompt by searching it (Windows), or by writting this in a Linux's terminal: `source anaconda3/bin/activate`
-- In the terminal, write `conda create -n 'environment-name'`. 
-	- For example: `conda create -n tensor`
+* NVIDIA CUDA Toolkit 10.0
+* NVIDIA cuDNN v7.6.5
+* Python 3.7
+* Tensorflow 1.15.0
 
-###	1.3. Install tensorflow 1.15
-- Activate the virtual environment that you have created before: `activate tensor`
--	Install tensorflow: `conda install -c conda-forge tensorflow==1.15`
+### 2. Install CUDA
 
-### 1.4. Install keras
--	`conda install -c conda-forge keras`
+#### 2.1 Download CUDA 10.0 and install it in C hard disk: [CUDA](https://developer.nvidia.com/cuda-downloads)
 
-### 1.5. Install plaidml (only for AMD cards)
--	`conda install -c conda-forge keras`
-- `pip install plaidml-keras plaidbench`
-- `plaidml-setup`
+### 3. Install cuDNN
 
-### 1.5. Install folium
--	`conda install -c conda-forge folium`
+#### 3.1 Download cuDNN v7.6.5 (November 5th, 2019), for CUDA 10.0 (you need to register first): [cuDNN](https://developer.nvidia.com/rdp/form/cudnn-download-survey)
 
-### 1.6. Install Earth Engine API
--	`conda install -c conda-forge earthengine-api`
+#### 3.2 Unzip the file downloaded, copy the folders from the zip (include, lib, bin) and replace them with the same folders that are located where CUDA 10.0 were installed.
 
-***VERY IMPORTANT***:
-If you're using an AMD, and have installed 'plaidml', you have to include, at the begining of the python code, the following code: `import plaidml.keras plaidml.keras.install_backend()`
+### 4. Install Python 3.7
 
-## 2. Running tensorflow
+#### 4.1 Install Anaconda: [Anaconda]:(https://www.anaconda.com/distribution/)
 
-### 1.1 Execute anaconda prompt by writting in a terminal: 
--	`source anaconda3/bin/activate`
+### 5. Install tensorflow
 
-### 1.2. Run the virtual environment: 
--	`conda activate tensor`
+#### 5.1 Open the 'Anaconda prompt'
+
+#### 5.2 Write the following in the command line in order to install tensorflow:
+1. Activate the virtual environment: `activate keras-gpu`
+2. Install tensorflow: `pip install tensorflow-gpu==1.15`
