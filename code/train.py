@@ -5,7 +5,6 @@ import re
 import argparse
 import numpy as np
 import random as rn
-import threading
 import tensorflow as tf
 
 from sklearn.utils import shuffle

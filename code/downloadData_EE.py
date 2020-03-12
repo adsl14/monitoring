@@ -4,7 +4,7 @@ import time
 
 start_date = '2016-11-01' # PagoBásico 09-01, Rice 11-01
 end_date = '2017-02-01' # PagoBásico 08-31, Rice 02-01
-sentinels = ["A"] # A, B or AB
+sentinels = ["A","B"] # A, B or AB
 orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
 indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
 indexes_sentinel2 = ['ICEDEX','B11']
