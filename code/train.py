@@ -7,6 +7,7 @@ import numpy as np
 import random as rn
 import tensorflow as tf
 
+from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from sklearn import preprocessing # For normalization
 
@@ -22,8 +23,6 @@ np.random.seed(seed)
 rn.seed(seed)
 tf.set_random_seed(seed)
 import keras.backend as k
-sess = tf.get_default_session()
-k.set_session(sess)
 
 import keras
 from keras.optimizers import adam
@@ -31,6 +30,8 @@ from keras.models import Model, Sequential, load_model
 from keras.layers import Dense, Dropout, Input, Flatten, LSTM, CuDNNLSTM, Conv1D, MaxPooling1D, Concatenate, BatchNormalization, GlobalAveragePooling1D, TimeDistributed
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint,TensorBoard
+
+
 
 # Give to the GPU what percentage will use
 def configureKerasForGPU(percentage):
@@ -61,7 +62,7 @@ def str2bool(val):
 def defineArgParsers():
 
 	parser = argparse.ArgumentParser(description='Generate a model.')
-	parser.add_argument("--network",type=str, default='LSTM|CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM)")
+	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM)")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
 	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier.")
 	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
@@ -75,6 +76,7 @@ def defineArgParsers():
 	parser.add_argument("--loss_function",type=str, default="categorical_crossentropy", help="loss function (categorical_crossentropy)")
 	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
 	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
+	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test.")
 
 	return parser.parse_args()
 
@@ -265,6 +267,173 @@ def showSamples(tags_name):
 	total_test = num_testSamples.sum()
 	print("Total %d" %(total_test))
 
+def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name, labels_header):
+
+	for campaing in campaings:
+
+		path_train = os.path.join(path_radar,campaing,"train.csv")
+		path_test = os.path.join(path_radar,campaing,"test.csv")
+
+		if os.path.exists(path_train) and os.path.exists(path_test):
+
+			print("Campaña: %s. Split ya realizado." %(campaing))
+			continue
+
+		else:
+
+			# Read 'tags.csv' and clean tag dataframe. Ignore the samples that were marked as -1
+			tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
+			tagDataFrame = tagDataFrame[tagDataFrame[labels_header] != -1]
+
+			nameColumns = tagDataFrame.columns
+
+			tagDataFrameName = tagDataFrame[nameColumns[0]]
+			tagDataFrameActivity = tagDataFrame[nameColumns[1:]]
+
+			# Get the train and test split. It will shuffle automatically. 70% train, 30% test  
+			dfName_train, dfName_test, dfTarget_train, dfTarget_test = train_test_split(tagDataFrameName,tagDataFrameActivity, test_size=0.3, random_state=seed, stratify=tagDataFrameActivity)
+
+			df_train = pd.concat([dfName_train, dfTarget_train], axis=1)
+			pd.DataFrame.to_csv(df_train,index=False,path_or_buf=os.path.join(path_radar,campaing,"train.csv"))
+			print("Conjunto de train guardado correctamente en %s" %(os.path.join(path_radar,campaing,"train.csv")))
+
+			df_test = pd.concat([dfName_test, dfTarget_test], axis=1)
+			pd.DataFrame.to_csv(df_test,index=False,path_or_buf=os.path.join(path_radar,campaing,"test.csv"))
+			print("Conjunto de test guardado correctamente en %s" %(os.path.join(path_radar,campaing,"test.csv")))
+
+def loadSamplesFull(tags_name, labels, indexes, campaings, path_radar,labels_header,interpolate):
+
+	now = time.time()
+
+	num_classes = len(labels)
+	num_features = len(indexes)
+	sequencesTrain = []
+	sequencesTest = []
+	targetsTrain = []
+	targetsTest = []
+
+	for campaing in campaings:
+
+	  # Read the train and test .csv
+	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,"train.csv"))
+	  print("'train.csv' cargado correctamente")
+
+	  tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaing,"test.csv"))
+	  print("'test.csv' cargado correctamente")
+
+	  total_train = tagDataFrameTrain.shape[0]
+	  total_test = tagDataFrameTest.shape[0]
+
+	  # Get the sequence for each area
+	  i = 1
+	  for row in tagDataFrameTrain.values:
+
+	    region_path = row[0]
+	    areadf = pd.read_csv(os.path.join(path_radar,campaing,'dataset',region_path))
+	    areadf = areadf[indexes].dropna(how='all')
+
+	    if(interpolate):
+	      areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
+	    
+	    sequencesTrain.append(areadf.values)
+	    targetsTrain.append(row[1:])
+
+	    print("---Entrenamiento---")
+	    print(campaing)
+	    print("Progreso %d/%d" %(i,total_train))
+	    print("Recinto %s cargado." %(region_path))
+	    i=i+1
+
+	  i = 1
+	  for row in tagDataFrameTest.values:
+
+	    region_path = row[0]
+	    areadf = pd.read_csv(os.path.join(path_radar,campaing,'dataset',region_path))
+	    areadf = areadf[indexes].dropna(how='all')
+
+	    if(interpolate):
+	      areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
+
+	    sequencesTest.append(areadf.values)
+	    targetsTest.append(row[1:])
+
+	    print("---Test---")
+	    print(campaing)
+	    print("Progreso %d/%d" %(i,total_test))
+	    print("Recinto %s cargado." %(region_path))
+	    i=i+1
+
+	# Get the length of the time series for each area in order to get the max values of the time series
+	len_sequences = []
+	sequences = sequencesTrain + sequencesTest
+	for one_seq in sequences:
+	    len_sequences.append(len(one_seq))
+	seriesDescription = pd.Series(len_sequences).describe()
+	max_valueSerie = int(seriesDescription[-1])
+	min_valueSerie = int(seriesDescription[3])
+
+	# Change time_step value
+	time_step = max_valueSerie
+	print("Using %d time_step" %(time_step))
+
+	#Padding the sequence with the values in last row to max length.
+	# If all the sequences has the same time_step, we don't fix any custom time_step
+	if max_valueSerie == min_valueSerie:
+
+	  x_train = np.array(sequencesTrain)
+	  x_test = np.array(sequencesTest)
+
+	else:
+
+	  print("Generating fix time_step for train")
+	  new_seq = []
+	  for one_seq in sequencesTrain:
+	      len_one_seq = len(one_seq)
+	      n = time_step - len_one_seq
+
+	      to_concat = np.repeat(one_seq[-1], n).reshape(num_features, n).transpose()
+	      new_one_seq = np.concatenate([one_seq, to_concat])
+	      new_seq.append(new_one_seq)
+	  x_train = np.array(new_seq)
+
+	  print("Generating fix time_step for test")
+	  new_seq = []
+	  for one_seq in sequencesTest:
+	      len_one_seq = len(one_seq)
+	      n = time_step - len_one_seq
+
+	      to_concat = np.repeat(one_seq[-1], n).reshape(num_features, n).transpose()
+	      new_one_seq = np.concatenate([one_seq, to_concat])
+	      new_seq.append(new_one_seq)
+	  x_test = np.array(new_seq)                       
+
+	# convert class vectors to binary class matrices
+	y_train = keras.utils.to_categorical(targetsTrain, num_classes)
+	y_test = keras.utils.to_categorical(targetsTest, num_classes)
+
+	end = time.time()
+
+	elapsed = end - now
+	time_convert(elapsed)
+
+	# Get number of samples
+	unique_samples_train, num_trainSamples = np.unique(y_train, axis=0, return_counts=True)
+	unique_samples_test, num_testSamples = np.unique(y_test, axis=0, return_counts=True)
+
+	print("")
+	print("Entrenamiento")
+	print(unique_samples_train)
+	print(num_trainSamples)
+	print("Total: %d" %(num_trainSamples.sum()))
+
+	print("")
+	print("Test")
+	print(unique_samples_test)
+	print(num_testSamples)
+	print("Total: %d" %(num_testSamples.sum()))
+
+	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
+
 def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,interpolate):
 
 	now = time.time()
@@ -406,9 +575,9 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,
 
 	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
 
-def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, experimentFolder):
+def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, nameExperiment, experimentFolder):
 
-	path_scaler = os.path.join(nameExperimentsFolder,experimentFolder+'-scaler.pkl')
+	path_scaler = os.path.join(nameExperimentsFolder, nameExperiment, experimentFolder + '-scaler.pkl')
 
 	if not os.path.exists(path_scaler):
 
@@ -442,7 +611,7 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, expe
 		samples_train, steps, features = x_train.shape
 		samples_test = x_test.shape[0]
 
-		scalerPath = os.path.join(nameExperimentsFolder,experimentFolder+'-scaler.pkl')
+		scalerPath = os.path.join(nameExperimentsFolder, nameExperiment, experimentFolder + '-scaler.pkl')
 
 		scaler = load(open(scalerPath, 'rb'))
 
@@ -461,9 +630,9 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, expe
 
 # TRAIN MODELS FUNCTIONS
 # LSTM || CNN
-def TrainCuDNNLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
+def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
-	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, experimentFolder):
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
 	# hyperparameters
 	#lr = 1e-02
@@ -483,11 +652,11 @@ def TrainCuDNNLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=
 	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
 	# Experiment folder and name
-	nameModel = 'CuDNNLSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,
-	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step)
+	nameModel = 'LSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
 
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-	path_experiment = os.path.join(nameExperimentsFolder,experimentFolder,nameModel)
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,experimentFolder,nameModel)
 
 	# If the experiment folder already exists, we will ignore it.
 	if os.path.exists(path_experiment):
@@ -544,11 +713,11 @@ def TrainCuDNNLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=
 		# Check if the user has entered at least one hidden layer conv1D
 		if nLayersConv1D > 0:
 		    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
-		    x_2 = BatchNormalization()(x_2)
+		    #x_2 = BatchNormalization()(x_2) makes no reproducibility
 
 		    for i in range(1,nLayersConv1D):
 		      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
-		      x_2 = BatchNormalization()(x_2)
+		      #x_2 = BatchNormalization()(x_2) makes no reproducibility
 
 		    x_2 = GlobalAveragePooling1D()(x_2)
 
@@ -632,12 +801,12 @@ def TrainCuDNNLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=
 		best_model_name = cleanExperimentFolder(path_experiment)
 
 		# Save figure
-		plt.savefig(os.path.join(path_experiment, "history_" + nameModel + "_" + best_model_name + ".png"))
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # LSTM -> CNN
-def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
-	nameExperimentsFolder, experimentFolder):
+	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -657,11 +826,11 @@ def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CuDNNLSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step)
+  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,experimentFolder,nameModel)
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,experimentFolder,nameModel)
 
   # If the experiment folder already exists, we will ignore it.
   if os.path.exists(path_experiment):
@@ -708,11 +877,11 @@ def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
         x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
-        x = BatchNormalization()(x)
+        #x = BatchNormalization()(x) makes no reproducibility
 
         for i in range(1,nLayersConv1D):
           x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
-          x = BatchNormalization()(x)
+          #x = BatchNormalization()(x) makes no reproducibility
 
         # Apply global average pooling and make the output only one dimension
         x = GlobalAveragePooling1D()(x)
@@ -792,12 +961,12 @@ def TrainCuDNNLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     best_model_name = cleanExperimentFolder(path_experiment)
 
     # Save figure
-    plt.savefig(os.path.join(path_experiment, "history_" + nameModel + "_" + best_model_name + ".png"))
+    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # CNN -> LSTM
-def TrainCNN_CuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
-  nameExperimentsFolder, experimentFolder):
+  nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -817,11 +986,11 @@ def TrainCNN_CuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CNN_CuDNNLSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step)
+  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,experimentFolder,nameModel)
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment, experimentFolder,nameModel)
 
   # If the experiment folder already exists, we will ignore it.
   if os.path.exists(path_experiment):
@@ -965,11 +1134,12 @@ def TrainCNN_CuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     best_model_name = cleanExperimentFolder(path_experiment)
 
     # Save figure
-    plt.savefig(os.path.join(path_experiment, "history_" + nameModel + "_" + best_model_name + ".png"))
+    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # LSTM
-def TrainCuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
-	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, experimentFolder):
+def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
+	experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -987,11 +1157,9 @@ def TrainCuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, n
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CuDNNLSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d' % (lr,batch_size,percentageDropout,
-                                                           str(nNeuronsSequence),str(nNeurons),
-                                                           epochs,time_step)
+  nameModel = 'LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,experimentFolder,nameModel)
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,experimentFolder,nameModel)
 
   # If the experiment folder already exists, we will ignore it.
   if os.path.exists(path_experiment):
@@ -1109,9 +1277,13 @@ def TrainCuDNNLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, n
     best_model_name = cleanExperimentFolder(path_experiment)
 
     # Save figure
-    plt.savefig(os.path.join(path_experiment, "history_" + nameModel + "_" + best_model_name + ".png"))
+    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 def main():
+
+	# Modify percentageGPU for the experiment
+	args = defineArgParsers()
+	configureKerasForGPU(args.percentageGPU)
 
 	tables_folder = 'tables'
 	nameExperimentsFolder = 'experiments'
@@ -1165,7 +1337,7 @@ def main():
 	colors_correct = ["green", "red"]
 	# *** Modifiable *** 
 
-	experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits))
+	experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits)) + "-cF_" + str(args.campaingsFull)
 
 	path_radar = os.path.join(tables_folder,radar_folder)
 
@@ -1176,47 +1348,56 @@ def main():
 
 	# *** Modifiable ***
 
-	args = defineArgParsers()
-
-	if args.network in ["LSTM|CNN", "LSTM+CNN", "CNN+LSTM", "LSTM"]:
-
-		# Modify percentageGPU for the experiment
-		configureKerasForGPU(args.percentageGPU)
+	if args.network in ["LSTM_p_CNN", "LSTM+CNN", "CNN+LSTM", "LSTM"]:
 
 		# Create experiments folder
 		if not os.path.exists(nameExperimentsFolder):
 			os.mkdir(nameExperimentsFolder)
 
+		# Create experiments folder
+		if not os.path.exists(nameExperiment):
+			os.mkdir(nameExperiment)
+
 		# Preparing data
 		tags_name = "tags_subarroz (2_classes).csv"
-		x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
-		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, experimentFolder)
+
+		if args.campaingsFull:
+			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=tags_name,labels_header=labels_header)
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
+
+		else:
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
+
+		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, nameExperiment, experimentFolder)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
 		nNeuronsConv1D = [int(i) for i in args.nNeuronsConv1D.split(",")]
 		nNeurons = [int(i) for i in args.nNeurons.split(",")]
 
-		if args.network == "LSTM|CNN":
-			TrainCuDNNLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
+		if args.network == "LSTM_p_CNN":
+			TrainLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
 				nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
 				min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
-				nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
+				nameExperimentsFolder=nameExperimentsFolder, nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "LSTM+CNN":
-			TrainCuDNNLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+			TrainLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
-				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "CNN+LSTM":
-			TrainCNN_CuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+			TrainCNN_LSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
-				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
+				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
+				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "LSTM":
-			TrainCuDNNLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
+			TrainLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
 				patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
-				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, experimentFolder=experimentFolder)
+				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 	else:
 		print("Error. That model is not defined.")
 
