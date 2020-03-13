@@ -19,8 +19,8 @@ from matplotlib import pyplot as plt
 #Fix the seed
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
-np.random.seed(seed)
 rn.seed(seed)
+np.random.seed(seed)
 tf.set_random_seed(seed)
 import keras.backend as k
 
@@ -551,7 +551,6 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,
 	y_train = keras.utils.to_categorical(targetsTrain, num_classes)
 	y_test = keras.utils.to_categorical(targetsTest, num_classes)
 
-
 	end = time.time()
 
 	elapsed = end - now
@@ -579,25 +578,17 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, name
 
 	path_scaler = os.path.join(nameExperimentsFolder, nameExperiment, experimentFolder + '-scaler.pkl')
 
+	# Normalize data
+	samples_train, steps, features = x_train.shape
+	samples_test = x_test.shape[0]
+
+	x_train = x_train.reshape((samples_train,steps*features),order='F')
+	x_test = x_test.reshape((samples_test,steps*features),order='F')	
+
 	if not os.path.exists(path_scaler):
-
-		# Normalize data
-		samples_train, steps, features = x_train.shape
-		samples_test = x_test.shape[0]
-
-		x_train = x_train.reshape((samples_train,steps*features),order='F')
-		x_test = x_test.reshape((samples_test,steps*features),order='F')
 
 		# Change for  MinMaxScaler, StandardScaler, Normalizer
 		scaler = preprocessing.MinMaxScaler().fit(x_train)
-		x_train = scaler.transform(x_train)
-		x_test = scaler.transform(x_test)
-
-		x_train = np.reshape(x_train, (samples_train, steps, features),order='F')
-		x_test = np.reshape(x_test, (samples_test, steps, features),order='F')
-
-		# Shuffle the x_train samples
-		x_train, y_train = shuffle(x_train, y_train, random_state=seed)
 
 		# Save scaler
 		dump(scaler, open(path_scaler, 'wb'))
@@ -607,22 +598,18 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, name
 
 		print("Scaler already saved")
 
-		# Normalize data
-		samples_train, steps, features = x_train.shape
-		samples_test = x_test.shape[0]
-
+		# Load scaler
 		scalerPath = os.path.join(nameExperimentsFolder, nameExperiment, experimentFolder + '-scaler.pkl')
-
 		scaler = load(open(scalerPath, 'rb'))
 
-		x_train = x_train.reshape((samples_train,steps*features),order='F')
-		x_test = x_test.reshape((samples_test,steps*features),order='F')
+	x_train = scaler.transform(x_train)
+	x_test = scaler.transform(x_test)
 
-		x_train = scaler.transform(x_train)
-		x_test = scaler.transform(x_test)
+	x_train = np.reshape(x_train, (samples_train, steps, features),order='F')
+	x_test = np.reshape(x_test, (samples_test, steps, features),order='F')
 
-		x_train = np.reshape(x_train, (samples_train, steps, features),order='F')
-		x_test = np.reshape(x_test, (samples_test, steps, features),order='F')
+	# Shuffle the x_train samples
+	x_train, y_train = shuffle(x_train, y_train, random_state=seed)
 
 	print("Samples normalized.")
 
@@ -713,11 +700,11 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		# Check if the user has entered at least one hidden layer conv1D
 		if nLayersConv1D > 0:
 		    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
-		    #x_2 = BatchNormalization()(x_2) makes no reproducibility
+		    #x_2 = BatchNormalization()(x_2)
 
 		    for i in range(1,nLayersConv1D):
 		      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
-		      #x_2 = BatchNormalization()(x_2) makes no reproducibility
+		      #x_2 = BatchNormalization()(x_2)
 
 		    x_2 = GlobalAveragePooling1D()(x_2)
 
@@ -877,14 +864,15 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
         x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
-        #x = BatchNormalization()(x) makes no reproducibility
+        x = BatchNormalization()(x)
 
         for i in range(1,nLayersConv1D):
           x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
-          #x = BatchNormalization()(x) makes no reproducibility
+          x = BatchNormalization()(x)
 
         # Apply global average pooling and make the output only one dimension
         x = GlobalAveragePooling1D()(x)
+        x = Flatten()(x)
 
         if percentageDropout > 0.0:
               x = Dropout(percentageDropout)(x)    
@@ -906,8 +894,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
         #x = Dropout(percentageDropout)(x)  
 
     # Output
-    output = Dense(num_classes, activation='softmax',
-                    kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
 
