@@ -9,7 +9,6 @@ import random as rn
 import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
 from sklearn import preprocessing # For normalization
 
@@ -137,37 +136,6 @@ def searchModelInFile(model_name,file_pointer):
       return True, row[1:]
 
   return False, []
-
-def WriteResultsModel(best_model_path,output_writer, x_test, y_test, labels):
-  
-  # Load the best model for that experiment
-  model = load_model(best_model_path)
-
-  # For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-  if "CNN" == best_model_path.split("/")[-2][0:3]:
-    x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
-
-  # Get the predictions
-  predictions = model.predict(x_test)
-
-  # Confusion matrix
-  cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
-
-  # Evaluate test data
-  score = model.evaluate(x_test, y_test, verbose=0)
-
-  print("RESULTS")
-  print("------------------------")
-  print("Confusion matrix")
-  show_confussionMatrix(cm,labels)
-  print("------------------------")
-  print("Score")
-  print("Test loss:", score[0])
-  print("Test accuracy:", str(round(score[1]*100,2)) + ' %')
-  print("------------------------")
-
-  output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
-  print("Model %s results saved correctly \n \n" % (best_model_path))
  
 def plot_history(history):
 
@@ -615,12 +583,12 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, name
 
 	return x_train, y_train, x_test, y_test
 
-def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, campaings):
+def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, time_step, campaings):
 
 	with open(path_optionsFile,mode="w",newline='') as output_file:
 		output_writer = csv.writer(output_file, delimiter=',')
-		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'campaings'])
-		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, campaings])
+		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'time_step', 'campaings'])
+		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, time_step, campaings])
 
 
 # TRAIN MODELS FUNCTIONS
@@ -1355,13 +1323,6 @@ def main():
 		# Get tag name
 		tags_name = "tags_subarroz (2_classes).csv"
 
-		# Write options
-		path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
-		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
-		if not os.path.exists(path_folderOptions):
-			os.mkdir(path_folderOptions)
-		writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, tags_name, campaings)
-
 		# Load data
 		if args.campaingsFull:
 			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=tags_name,labels_header=labels_header)
@@ -1371,6 +1332,13 @@ def main():
 			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
 
 		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, nameExperiment, experimentFolder)
+
+		# Write options
+		path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
+		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
+		if not os.path.exists(path_folderOptions):
+			os.mkdir(path_folderOptions)
+		writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, tags_name, time_step, campaings)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
