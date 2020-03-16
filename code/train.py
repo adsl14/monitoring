@@ -615,12 +615,12 @@ def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, name
 
 	return x_train, y_train, x_test, y_test
 
-def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, campaings):
+def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, campaings):
 
 	with open(path_optionsFile,mode="w",newline='') as output_file:
 		output_writer = csv.writer(output_file, delimiter=',')
-		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull','campaings'])
-		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, campaings])
+		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'campaings'])
+		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, campaings])
 
 
 # TRAIN MODELS FUNCTIONS
@@ -1341,13 +1341,6 @@ def main():
 
 	# *** Modifiable ***
 
-	# Write options
-	path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
-	path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
-	if not os.path.exists(path_folderOptions):
-		os.mkdir(path_folderOptions)
-	writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, campaings)
-
 	if args.network in ["LSTM_p_CNN", "LSTM+CNN", "CNN+LSTM", "LSTM"]:
 
 		# --- LOAD DATA ---
@@ -1359,9 +1352,17 @@ def main():
 		if not os.path.exists(os.path.join(nameExperimentsFolder,nameExperiment)):
 			os.mkdir(os.path.join(nameExperimentsFolder,nameExperiment))
 
-		# Preparing data
+		# Get tag name
 		tags_name = "tags_subarroz (2_classes).csv"
 
+		# Write options
+		path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
+		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
+		if not os.path.exists(path_folderOptions):
+			os.mkdir(path_folderOptions)
+		writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, tags_name, campaings)
+
+		# Load data
 		if args.campaingsFull:
 			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=tags_name,labels_header=labels_header)
 			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
