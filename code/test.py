@@ -4,6 +4,7 @@ import numpy as np
 import csv
 import tensorflow as tf
 import re
+import sys
 
 import keras
 import keras.backend as k
@@ -21,9 +22,60 @@ def defineArgParsers():
 	parser.add_argument("--networkPath",type=str, default='', help="Path where the model is located")
 	parser.add_argument("--campaingPath",type=str, default='', help="Path where the campaing data is located")
 	parser.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions")
+	parser.add_argument("--experimentName",type=str, default='', help="Experiment name (activity,rice)")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
 
 	return parser.parse_args()
+
+def searchModelInFile(model_name,file_pointer):
+
+  for row in file_pointer:
+    if model_name == row[0]:
+      return True, row[1:]
+
+  return False, []
+
+def show_confussionMatrix(matrix,labels):
+
+	row = matrix.shape[0]
+	cols = matrix.shape[1]
+
+	print('Real | Predicted | Amount')
+
+	for i in range(0,row):
+		for j in range(0,cols):
+			print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
+
+def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, features, labels):
+  
+	# Load the best model for that experiment
+	model = load_model(best_model_path)
+
+	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
+	if "CNN" == best_model_path.split("\\")[-2][0:3]:
+		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
+
+	# Get the predictions
+	predictions = model.predict(x_test)
+
+	# Confusion matrix
+	cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
+
+	# Evaluate test data
+	score = model.evaluate(x_test, y_test, verbose=0)
+
+	print("RESULTS")
+	print("------------------------")
+	print("Confusion matrix")
+	show_confussionMatrix(cm,labels)
+	print("------------------------")
+	print("Score")
+	print("Test loss:", score[0])
+	print("Test accuracy:", str(round(score[1]*100,2)) + ' %')
+	print("------------------------")
+
+	output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
+	print("Model %s results saved correctly \n \n" % (best_model_path))
 
 def loadOptions(pathOptions):
 
@@ -152,10 +204,31 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 
 	return x_data, y_data, tagDataFrameName
 
-def TestModel(model,modelPath,x_test,y_test, labels, steps, features, num_classes, tagDataFrameName, output_path):
+def LoadModel(model_parameters, modelExperiment, nameExperiment='activity'):
+
+	modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, model_parameters)
+	models = os.listdir(modelPath)
+	models.sort(key=natural_keys,reverse=True)
+	best_model_name = models[2]
+	modelPath = os.path.join(modelPath,best_model_name)
+
+	model = load_model(modelPath)
+
+	print('Model %s loaded' % (modelPath))
+
+	return model, modelPath, best_model_name
+
+def TestModelTag(model,modelPath, x_test,y_test, labels, steps, features, num_classes, tagDataFrameName, output_path):
   
+	modelSplitPath = modelPath.split("\\")
+	path_results = os.path.join("experiments",modelSplitPath[1],"results")
+
+	# Check if the folder 'results' exists. If not, we'll create it
+	if not os.path.exists(path_results):
+		os.mkdir(path_results)
+
 	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN" == modelPath.split("\\")[-2][0:3]:
+	if "CNN" == modelSplitPath[-1][0:3]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
@@ -197,15 +270,144 @@ def TestModel(model,modelPath,x_test,y_test, labels, steps, features, num_classe
 
 		print('Results saved in %s' % (output_path))
 
-def writePredictions(nameOutput,regions,num_regions,argPredictions):
+def TestModel(model, modelPath, x_test, regions, num_regions, labels, steps, features, output_path):
+  
+	modelSplitPath = modelPath.split("\\")
+	path_results = os.path.join("experiments",modelSplitPath[1],"results")
 
-	with open(nameOutput, mode='w', newline="") as output_file:
+	# Check if the folder 'results' exists. If not, we'll create it
+	if not os.path.exists(path_results):
+		os.mkdir(path_results)
+
+	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
+	if "CNN" == modelSplitPath[-1][0:3]:
+		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
+		print("x_test reshaped")
+
+	# Get the predictions
+	predictions = model.predict(x_test)
+	argPredictions = predictions.argmax(axis=1)
+
+	with open(output_path, mode='w', newline="") as output_file:
 
 		output_writer = csv.writer(output_file, delimiter=',')
-		output_writer.writerow(['Nombre', 'Cumple'])
+		output_writer.writerow(['NameModel',modelPath])
+		output_writer.writerow(['Name', 'Class'])
 
 		for i in range(0,num_regions):
-			output_writer.writerow([regions[i], argPredictions[i]])
+			output_writer.writerow([regions[i], labels[argPredictions[i]]])
+
+		# Closing the file
+		output_file.close()
+		print('Results saved in %s' % (output_path))
+
+def TestModels(modelsExperiments,experimentName, campaingPath, tags_name):
+
+	path_results = os.path.join("experiments",experimentName,"results")
+	campaingName = campaingPath.split("\\")[-1]
+
+	# Check if the folder 'results' exists. If not, we'll create it
+	if not os.path.exists(path_results):
+		os.mkdir(path_results)
+
+	fileOutputName = os.path.join(path_results,campaingName+"_loss.csv")
+
+	# Check if the file 'result_loss.csv' exists
+	if os.path.exists(fileOutputName):
+		fileOutputNameAux = os.path.join(path_results,campaingName+"_loss-temp.csv")
+
+		# Update original file using temporal
+		if os.path.exists(fileOutputNameAux):
+			print("Replacing 'temp' to 'original")
+			# Remove the original file
+			os.remove(fileOutputName)
+			# Rename the temporal file
+			os.rename(fileOutputNameAux,fileOutputName)
+
+		with open(fileOutputName,mode='r') as input_file:
+			with open(fileOutputNameAux,mode='w',newline='') as output_file:
+
+				# Write the header
+				output_writer = csv.writer(output_file, delimiter=',')
+				input_reader = csv.reader(input_file)
+
+				# Read each modelExperiment from each experiment in 'models' folder
+				for modelExperiment in modelsExperiments:
+
+					# Load scaler (normalize data)
+					scalerPath = os.path.join("experiments",experimentName,"scalers",modelExperiment+"-scaler.pkl")
+					scaler = load(open(scalerPath, 'rb'))
+					print("Scaler: %s loaded" %(scalerPath))
+
+					# Load options
+					indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",experimentName,"options",modelExperiment+".csv"))
+
+					# Load data
+					x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
+					x_data_aux = None
+
+					# Get each model name from one experiment name
+					modelsName = os.listdir(os.path.join("experiments",experimentName,"models",modelExperiment))
+
+					# Load each model from one experiment
+					for modelName in modelsName:
+
+						# Load model
+						model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,experimentName)
+						exists, score = searchModelInFile(modelPath,input_reader)
+
+						# The model has already tested
+						if exists:
+							print('Ignored the model %s' %(modelPath))
+							output_writer.writerow([modelPath, score[0], score[1]])
+						# Test the new model
+						else:
+							print("Loading %s" %(modelPath))
+							WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels)
+
+		# Remove the original file
+		os.remove(fileOutputName)
+		# Rename the temporal file
+		os.rename(fileOutputNameAux,fileOutputName)
+
+		# Closing the files
+		input_file.close()
+		output_file.close()
+
+	# Create a new one
+	else:
+		with open(fileOutputName,mode='w',newline='') as output_file:
+			output_writer = csv.writer(output_file,delimiter=',')
+			output_writer.writerow(["Name","Loss","Accuracy"])
+
+			# Read each modelExperiment from each experiment in 'models' folder
+			for modelExperiment in modelsExperiments:
+
+				# Load scaler (normalize data)
+				scalerPath = os.path.join("experiments",experimentName,"scalers",modelExperiment+"-scaler.pkl")
+				scaler = load(open(scalerPath, 'rb'))
+				print("Scaler: %s loaded" %(scalerPath))
+
+				# Load options
+				indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",experimentName,"options",modelExperiment+".csv"))
+
+				# Load data
+				x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
+				x_data_aux = None
+
+				# Get each model name from one experiment name
+				modelsName = os.listdir(os.path.join("experiments",experimentName,"models",modelExperiment))
+
+				# Load each model from one experiment
+				for modelName in modelsName:
+
+					# Load model
+					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,experimentName)
+					WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels)
+
+		# Closing the file
+		output_file.close()
+		print("File %s saved correctly" %(fileOutputName))
 
 def main():
 
@@ -217,11 +419,10 @@ def main():
 	if args.networkPath != '':
 
 		# Load model
-		model = load_model(args.networkPath)
-		print('Model: %s loaded' %(args.networkPath))
+		tempPath = args.networkPath.split("\\")[0:5]
+		model, modelPath, best_model_name = LoadModel(tempPath[4],tempPath[3],tempPath[1])
 
 		# Load scaler (normalize data)
-		tempPath = args.networkPath.split("\\")[0:5]
 		scalerPath = os.path.join(tempPath[0],tempPath[1],"scalers",tempPath[3]+"-scaler.pkl")
 		scaler = load(open(scalerPath, 'rb'))
 		print("Scaler: %s loaded" %(scalerPath))
@@ -231,38 +432,41 @@ def main():
 
 		# Load one campaing
 		if args.campaingPath != '':
-
 			# Load tag filename
 			if args.tags_name != '':
-
 				# Load data
 				x_data, y_data, tagDataFrameName = loadDataTag(args.campaingPath, args.tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
-
-				TestModel(model, args.networkPath, x_data, y_data, labels, time_step, num_features, num_classes, tagDataFrameName, os.path.join(tempPath[0],tempPath[1],"results",tempPath[3]+"-results_predictions.csv"))
+				TestModelTag(model, args.networkPath, x_data, y_data, labels, time_step, num_features, num_classes, tagDataFrameName, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-loss_predictions.csv"))
 
 			# Only predict without tags
 			else:
-
 				# Load data
 				x_data, regions, num_regions = loadData(args.campaingPath, args.networkPath, indexes, labels, interpolate, time_step, num_features, scaler)
-
-				# Get the predictions
-				predictions = model.predict(x_data)
-				argPredictions = predictions.argmax(axis=1)
-
-				# Write the predictions
-				writePredictions(os.path.join(tempPath[0],tempPath[1],"results",tempPath[4]+"-predictions.csv"),regions,num_regions,argPredictions)
-
+				TestModel(model, args.networkPath, x_data, regions, num_regions, labels, time_step, num_features, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-predictions.csv"))
 		else:
+			print("Error -> 'campaingPath' not specified")
+			sys.exit()
 
-			print("Error -> need a campaing path to load data")
-
+	# Load multiple models
 	else:
 
-		print("Loading multiple models")
+		if args.experimentName == '':
+			print("Error -> 'experimentName' not specified")
+			sys.exit()
 
+		modelsExperiments = os.listdir(os.path.join("experiments",args.experimentName,"models"))
 
-
+		# Load one campaing
+		if args.campaingPath != '':
+			# Load tag filename
+			if args.tags_name != '':
+				TestModels(modelsExperiments, args.experimentName, args.campaingPath, args.tags_name)
+			else:
+				print("Error -> 'tags_name' not specified")
+				sys.exit()
+		else:
+			print("Error -> 'campaingPath' not specified")
+			sys.exit()
 
 if __name__ == '__main__':
 	main()
