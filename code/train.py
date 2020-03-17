@@ -524,9 +524,9 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,
 
 	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
 
-def normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, nameExperiment, experimentFolder):
+def normalize_data(x_train, y_train, x_test, y_test, path_folderScalers, nameExperiment, experimentFolder):
 
-	path_scaler = os.path.join(nameExperimentsFolder, nameExperiment, "scalers", experimentFolder + '-scaler.pkl')
+	path_scaler = os.path.join(path_folderScalers, experimentFolder + '-scaler.pkl')
 
 	# Normalize data
 	samples_train, steps, features = x_train.shape
@@ -829,7 +829,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
         # Apply global average pooling and make the output only one dimension
         x = GlobalAveragePooling1D()(x)
-        x = Flatten()(x)
+        #x = Flatten()(x)
 
         if percentageDropout > 0.0:
               x = Dropout(percentageDropout)(x)    
@@ -1235,7 +1235,7 @@ def main():
 	indexes_sentinel1_v2 = []
 
 	# *** Modifiable ***
-	nameExperiment = 'rice'
+	nameExperiment = 'rice_t1'
 
 	sentinels = ["A"] # A, B or AB
 	orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
@@ -1297,7 +1297,7 @@ def main():
 		if not os.path.exists(nameExperimentsFolder):
 			os.mkdir(nameExperimentsFolder)
 
-		# Create experiments folder
+		# Create nameexperiment
 		if not os.path.exists(os.path.join(nameExperimentsFolder,nameExperiment)):
 			os.mkdir(os.path.join(nameExperimentsFolder,nameExperiment))
 
@@ -1312,7 +1312,11 @@ def main():
 		else:
 			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
 
-		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, nameExperimentsFolder, nameExperiment, experimentFolder)
+		# Create 'scaler folder'
+		path_folderScalers = os.path.join(nameExperimentsFolder,nameExperiment,"scalers")
+		if not os.path.exists(path_folderScalers):
+			os.mkdir(path_folderScalers)
+		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, path_folderScalers, nameExperiment, experimentFolder)
 
 		# Write options
 		path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
