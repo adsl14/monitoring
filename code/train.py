@@ -79,17 +79,6 @@ def defineArgParsers():
 	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test.")
 
 	return parser.parse_args()
-
-def show_confussionMatrix(matrix,labels):
-
-	row = matrix.shape[0]
-	cols = matrix.shape[1]
-
-	print('Real | Predicted | Amount')
-
-	for i in range(0,row):
-		for j in range(0,cols):
-			print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
    
 def time_convert(sec):
   mins = sec // 60
@@ -128,14 +117,6 @@ def cleanExperimentFolder(folderNameExperimentPath):
 
   # Get best model name
   return models[0]
-
-def searchModelInFile(model_name,file_pointer):
-
-  for row in file_pointer:
-    if model_name == row[0]:
-      return True, row[1:]
-
-  return False, []
  
 def plot_history(history):
 
