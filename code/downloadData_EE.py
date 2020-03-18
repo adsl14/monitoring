@@ -82,6 +82,7 @@ def normalizedDifference(a, b):
     return nd_inf
 
 def toNatural(img):
+
   return ee.Image(10.0).pow(img.select('..').divide(10.0)).copyProperties(img, ['system:time_start'])
 
 def maskEdge(img):
@@ -89,6 +90,7 @@ def maskEdge(img):
   return img.updateMask(mask.select(0))
 
 def addPol(img):
+
   num = img.select('VH').subtract(img.select('VV'))
   den = img.select('VH').add(img.select('VV'))
   nd = num.divide(den)
@@ -101,12 +103,14 @@ def addDiv(img):
   return img.addBands(nd.float().rename('VH_Div_VV'));
 
 def addVH_Sum_VV(img):
+
   a = img.select('VH');
   b = img.select('VV');
   result = a.add(b);
   return img.addBands(result.float().rename('VH_Sum_VV'));
 
 def getFeaturesRange(fc,id1,id2):
+  
   features = [];
   tam = id2+1
 
