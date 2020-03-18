@@ -38,7 +38,7 @@ do
 
 						for ((lr=0; lr<tam_lrs; ++lr))
 						do
-							python train.py --network="LSTM_p_CNN" --percentageGPU=$percentageGPU --learning_rate=${lrs[lr]} --batch_size=${batch_sizes[bs]} --epochs=${epochs[e]} --percentageDropout=${dropouts[dr]} --patience=${patiences[p]} --patience_reduce_lr=${patiences_reduce_lr[pr_lr]} --nNeurons=${nNeurons[n]} &
+							python train.py --nameExperiment="rice" --sentinels="A" --orbits="DESC,ASC" --indexes_sentinel1="VH_Sum_VV" --labels_header="water" --labels="cumple,no_cumple" --colors_label="cyan,orange" --campaings="rice_A,B_DESC,ASC_2017-11-01_2018-02-01|rice_A,B_DESC,ASC_2018-11-01_2019-02-01|rice_A,B_DESC,ASC_2016-11-01_2017-02-01" --tags_name="tags_subarroz (2_classes).csv" --network="LSTM_p_CNN" --percentageGPU=$percentageGPU --learning_rate=${lrs[lr]} --batch_size=${batch_sizes[bs]} --epochs=${epochs[e]} --percentageDropout=${dropouts[dr]} --patience=${patiences[p]} --patience_reduce_lr=${patiences_reduce_lr[pr_lr]} --nNeurons=${nNeurons[n]} &
 							wait
 						done
 
