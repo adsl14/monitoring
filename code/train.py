@@ -1,9 +1,5 @@
 import pandas as pd
-import time
-import os
-import csv
-import re
-import argparse
+import time, os, csv, re, sys, argparse
 import numpy as np
 import random as rn
 import tensorflow as tf
@@ -61,8 +57,21 @@ def str2bool(val):
 def defineArgParsers():
 
 	parser = argparse.ArgumentParser(description='Generate a model.')
+
+	# MANDATORY
+	required = parser.add_argument_group('required arguments')
+	required.add_argument("--nameExperiment",type=str, default='', help="Experiment name (activity,rice)")
+	required.add_argument("--sentinels",type=str, default='', help="Sentinel to be used (A, B or AB). Separator -> ','")
+	required.add_argument("--orbits",type=str, default='', help="Orbit to be used (ASC, DESC or ASC_DESC). Separator -> ','")
+	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','")
+	required.add_argument("--labels_header",type=str, default='', help="Header of the class in the CSVs (water)")
+	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','")
+	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ',')")
+	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|')")
+	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv)")
+
+	# OPTIONAL
 	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM)")
-	parser.add_argument("--networkExperimentName",type=str, default='', help="Name of the experiment of the trained model")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
 	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier.")
 	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
@@ -77,6 +86,7 @@ def defineArgParsers():
 	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
 	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
 	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test.")
+	parser.add_argument("--indexes_sentinel2",type=str, default='', help="indexes of optic to be used (Rice: ICEDEX, B11). Separator -> ','")
 
 	return parser.parse_args()
    
@@ -182,7 +192,7 @@ def time_convert(sec):
   mins = mins % 60
   print("Time Lapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
-def showSamples(tags_name):
+def showSamples(tags_name,labels_header):
 
 	num_trainSamples = 0
 	num_testSamples = 0
@@ -251,7 +261,7 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name, labe
 			pd.DataFrame.to_csv(df_test,index=False,path_or_buf=os.path.join(path_radar,campaing,"test.csv"))
 			print("Conjunto de test guardado correctamente en %s" %(os.path.join(path_radar,campaing,"test.csv")))
 
-def loadSamplesFull(tags_name, labels, indexes, campaings, path_radar,labels_header,interpolate):
+def loadSamplesFull(labels, indexes, campaings, path_radar,labels_header,interpolate):
 
 	now = time.time()
 
@@ -384,7 +394,7 @@ def loadSamplesFull(tags_name, labels, indexes, campaings, path_radar,labels_hea
 
 	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
 
-def loadSamples(tags_name, labels, indexes, campaings, path_radar,labels_header,interpolate):
+def loadSamples(tags_name, labels, indexes, campaings, path_radar, labels_header,interpolate):
 
 	now = time.time()
 
@@ -1234,14 +1244,29 @@ def main():
 	radar_folder = 'radar'
 	indexes_sentinel1_v2 = []
 
-	# *** Modifiable ***
-	nameExperiment = 'rice_t1'
+	if args.nameExperiment == '':
+		print("Error -> 'nameExperiment' not specified")
+		sys.exit()
 
-	sentinels = ["A"] # A, B or AB
-	orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
-	indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
-	indexes_sentinel2 = ['ICEDEX','B11']
-	# *** Modifiable ***
+	if args.sentinels == '':
+		print("Error -> 'sentinels' not specified")
+		sys.exit()
+	sentinels = args.sentinels.split(",")
+
+	if args.orbits == '':
+		print("Error -> 'orbits' not specified")
+		sys.exit()
+	orbits = args.orbits.split(",")
+
+	if args.indexes_sentinel1 == '':
+		print("Error -> 'indexes_sentinel1' not specified")
+		sys.exit()
+	indexes_sentinel1 = args.indexes_sentinel1.split(",")
+
+	if args.indexes_sentinel2 != '':
+		indexes_sentinel2 = args.indexes_sentinel2.split(",")
+	else:
+		indexes_sentinel2 = []
 
 	# Update indexes_sentinel1 in other var
 	for i in indexes_sentinel1:
@@ -1249,46 +1274,49 @@ def main():
 	    for s in sentinels:
 	      indexes_sentinel1_v2.append(i+"_"+s+"_"+o)
 
-	# *** Modifiable ***
-	# The indexes we will use in order to train the model (indexes = indexes_sentinel1_v2 + indexes_sentinel2)
-	indexes = indexes_sentinel1_v2
-	# *** Modifiable ***
+	# Interpolate samples if we're going to use sentinel 1 AND 2, OR We are going to use sentinel-1 A AND B OR ASC AND DESC Separately
+	interpolate = False
 
-	interpolate = False # IMPORTANT!!!! Interpolate samples if we're going to use sentinel 1 AND 2, OR We are going to use sentinel-1 A AND B Separately
-
-	# Count the number of ocurrences of the indexes_sentinel1 (more than 2 means interpolate)
+	# Count the number of ocurrences of indexes_sentinel1 (more than 2 means interpolate)
 	for index_sentinel1 in indexes_sentinel1:
-	  count = sum(index_sentinel1 in s for s in indexes)
+	  count = sum(index_sentinel1 in s for s in indexes_sentinel1_v2)
 	  if count > 1:
 	    interpolate = True
 	    break
 
-	# If the 'for' before doesn't detect that we have to interpolate, we search if we're going to use sentinel2. If there is at least one index, interpolate = True
-	if not interpolate:
-	  for index_sentinel2 in indexes_sentinel2:
-	    count = sum(index_sentinel2 in s for s in indexes)
-	    if count > 0:
-	      interpolate = True
-	      break
+	# If the 'for' before doesn't detect that we have to interpolate, we search if we're going to use sentinel2.
+	if not interpolate and len(indexes_sentinel2) > 0:
+		interpolate = True
 
-	# *** Modifiable *** 
-	labels_header = "water"
+	# Combine the two indexes (sentinel1 and sentinel2)
+	indexes = indexes_sentinel1_v2 + indexes_sentinel2
 
-	labels = ['cumple', 'no_cumple']
-	colors_label = ["cyan", "orange"]
+	if args.labels_header == '':
+		print("Error -> 'labels_header' not specified")
+		sys.exit()
 
-	# *** Modifiable *** 
+	if args.labels == '':
+		print("Error -> 'labels' not specified")
+		sys.exit()
+	labels = args.labels.split(",")
 
-	experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits)) + "-cF_" + str(args.campaingsFull)
+	if args.colors_label == '':
+		print("Error -> 'colors_label' not specified")
+		sys.exit()
+	colors_label = args.colors_label.split(",") 
+
+	experimentFolder = args.nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits)) + "-cF_" + str(args.campaingsFull)
 
 	path_radar = os.path.join(tables_folder,radar_folder)
 
-	# *** Modifiable *** 
+	if args.campaings == '':
+		print("Error -> 'campaings' not specified")
+		sys.exit()
+	campaings = args.campaings.split("|")
 
-	# Change this line in order to use other campaings (make sure the only difference is the date)
-	campaings = ["rice_A,B_DESC,ASC_2017-11-01_2018-02-01", "rice_A,B_DESC,ASC_2018-11-01_2019-02-01", "rice_A,B_DESC,ASC_2016-11-01_2017-02-01"]
-
-	# *** Modifiable ***
+	if args.tags_name == '':
+		print("Error -> 'tags_name' not specified")
+		sys.exit()
 
 	if args.network in ["LSTM_p_CNN", "LSTM+CNN", "CNN+LSTM", "LSTM"]:
 
@@ -1298,32 +1326,29 @@ def main():
 			os.mkdir(nameExperimentsFolder)
 
 		# Create nameexperiment
-		if not os.path.exists(os.path.join(nameExperimentsFolder,nameExperiment)):
-			os.mkdir(os.path.join(nameExperimentsFolder,nameExperiment))
-
-		# Get tag name
-		tags_name = "tags_subarroz (2_classes).csv"
+		if not os.path.exists(os.path.join(nameExperimentsFolder,args.nameExperiment)):
+			os.mkdir(os.path.join(nameExperimentsFolder,args.nameExperiment))
 
 		# Load data
 		if args.campaingsFull:
-			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=tags_name,labels_header=labels_header)
-			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
+			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=args.tags_name,labels_header=args.labels_header)
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(labels,indexes,campaings,path_radar,args.labels_header,interpolate)
 
 		else:
-			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(tags_name,labels,indexes,campaings,path_radar,labels_header,interpolate)
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(args.tags_name,labels,indexes,campaings,path_radar,args.labels_header,interpolate)
 
 		# Create 'scaler folder'
-		path_folderScalers = os.path.join(nameExperimentsFolder,nameExperiment,"scalers")
+		path_folderScalers = os.path.join(nameExperimentsFolder,args.nameExperiment,"scalers")
 		if not os.path.exists(path_folderScalers):
 			os.mkdir(path_folderScalers)
-		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, path_folderScalers, nameExperiment, experimentFolder)
+		x_train, y_train, x_test, y_test = normalize_data(x_train, y_train, x_test, y_test, path_folderScalers, args.nameExperiment, experimentFolder)
 
 		# Write options
-		path_folderOptions = os.path.join(nameExperimentsFolder,nameExperiment,"options")
+		path_folderOptions = os.path.join(nameExperimentsFolder,args.nameExperiment,"options")
 		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
 		if not os.path.exists(path_folderOptions):
 			os.mkdir(path_folderOptions)
-		writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, tags_name, time_step, campaings)
+		writeOptions(path_optionsFile, args.nameExperiment, indexes, interpolate, args.labels_header, labels, colors_label, args.campaingsFull, args.tags_name, time_step, campaings)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
@@ -1334,25 +1359,25 @@ def main():
 			TrainLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
 				nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
 				min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
-				nameExperimentsFolder=nameExperimentsFolder, nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+				nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "LSTM+CNN":
 			TrainLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
-				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+				nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "CNN+LSTM":
 			TrainCNN_LSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
 				nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 				x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
-				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+				nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 		elif args.network == "LSTM":
 			TrainLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
 				patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
 				y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
-				nameExperiment=nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+				nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 	else:
 		print("Error. That model is not defined.")
 		
