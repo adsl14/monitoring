@@ -200,7 +200,7 @@ def showSamples(tags_name):
 
 	  # Read the train and test .csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-	  labels_header = tagDataFrameTrain.columns[1:]
+	  labels_header = list(tagDataFrameTrain.columns[1:])
 	  for label_header in labels_header:
 	  	tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[label_header] != -1]
 
@@ -247,7 +247,7 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 			tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
 
 			name_region = tagDataFrame.columns[0]
-			labels_header = tagDataFrame.columns[1:]
+			labels_header = list(tagDataFrame.columns[1:])
 
 			for label_header in labels_header:
 				tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
@@ -417,7 +417,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 
 	  # Read the train and test .csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-	  labels_header = tagDataFrameTrain.columns[1:]
+	  labels_header = list(tagDataFrameTrain.columns[1:])
 	  for label_header in labels_header:
 	  	tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[label_header] != -1]
 	  print("'tags.csv' de entrenamiento cargado correctamente")
