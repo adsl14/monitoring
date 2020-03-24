@@ -64,7 +64,6 @@ def defineArgParsers():
 	required.add_argument("--sentinels",type=str, default='', help="Sentinel to be used (A, B or AB). Separator -> ','")
 	required.add_argument("--orbits",type=str, default='', help="Orbit to be used (ASC, DESC or ASC_DESC). Separator -> ','")
 	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','")
-	required.add_argument("--labels_header",type=str, default='', help="Header of the class in the CSVs (water)")
 	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','")
 	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ',')")
 	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|')")
@@ -192,7 +191,7 @@ def time_convert(sec):
   mins = mins % 60
   print("Time Lapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
-def showSamples(tags_name,labels_header):
+def showSamples(tags_name):
 
 	num_trainSamples = 0
 	num_testSamples = 0
@@ -201,7 +200,9 @@ def showSamples(tags_name,labels_header):
 
 	  # Read the train and test .csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-	  tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[labels_header] != -1]
+	  labels_header = tagDataFrameTrain.columns[1:]
+	  for label_header in labels_header:
+	  	tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[label_header] != -1]
 
 	  num_trainSamples = num_trainSamples + tagDataFrameTrain[labels_header].value_counts()
 
@@ -209,7 +210,8 @@ def showSamples(tags_name,labels_header):
 
 	# Read the train and test .csv
 	tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaings[-1],tags_name))
-	tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[labels_header] != -1]
+	for label_header in labels_header:
+		tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[label_header] != -1]
 	nameColumns = tagDataFrameTest.columns
 
 	num_testSamples = num_testSamples + tagDataFrameTest[labels_header].value_counts()
@@ -227,7 +229,7 @@ def showSamples(tags_name,labels_header):
 	total_test = num_testSamples.sum()
 	print("Total %d" %(total_test))
 
-def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name, labels_header):
+def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 
 	for campaing in campaings:
 
@@ -243,12 +245,15 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name, labe
 
 			# Read 'tags.csv' and clean tag dataframe. Ignore the samples that were marked as -1
 			tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-			tagDataFrame = tagDataFrame[tagDataFrame[labels_header] != -1]
 
-			nameColumns = tagDataFrame.columns
+			name_region = tagDataFrame.columns[0]
+			labels_header = tagDataFrame.columns[1:]
 
-			tagDataFrameName = tagDataFrame[nameColumns[0]]
-			tagDataFrameActivity = tagDataFrame[nameColumns[1:]]
+			for label_header in labels_header:
+				tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
+
+			tagDataFrameName = tagDataFrame[name_region]
+			tagDataFrameActivity = tagDataFrame[labels_header]
 
 			# Get the train and test split. It will shuffle automatically. 70% train, 30% test  
 			dfName_train, dfName_test, dfTarget_train, dfTarget_test = train_test_split(tagDataFrameName,tagDataFrameActivity, test_size=0.3, random_state=seed, stratify=tagDataFrameActivity)
@@ -261,7 +266,9 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name, labe
 			pd.DataFrame.to_csv(df_test,index=False,path_or_buf=os.path.join(path_radar,campaing,"test.csv"))
 			print("Conjunto de test guardado correctamente en %s" %(os.path.join(path_radar,campaing,"test.csv")))
 
-def loadSamplesFull(labels, indexes, campaings, path_radar,labels_header,interpolate):
+	return labels_header
+
+def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 
 	now = time.time()
 
@@ -394,7 +401,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,labels_header,interpo
 
 	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
 
-def loadSamples(tags_name, labels, indexes, campaings, path_radar, labels_header,interpolate):
+def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 
 	now = time.time()
 
@@ -410,7 +417,9 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar, labels_header
 
 	  # Read the train and test .csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-	  tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[labels_header] != -1]
+	  labels_header = tagDataFrameTrain.columns[1:]
+	  for label_header in labels_header:
+	  	tagDataFrameTrain = tagDataFrameTrain[tagDataFrameTrain[label_header] != -1]
 	  print("'tags.csv' de entrenamiento cargado correctamente")
 
 	  total_train = tagDataFrameTrain.shape[0]
@@ -438,7 +447,8 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar, labels_header
 	# --- TEST BLOCK ---
 	# Read the test .csv
 	tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaings[-1],tags_name))
-	tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[labels_header] != -1]
+	for label_header in labels_header:
+		tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[label_header] != -1]
 	print("'tags.csv' de test cargado correctamente")
 
 	total_test = tagDataFrameTest.shape[0]
@@ -532,7 +542,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar, labels_header
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
 
-	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes
+	return x_train, y_train, x_test, y_test, time_step, num_features, num_classes, labels_header
 
 def normalize_data(x_train, y_train, x_test, y_test, path_folderScalers, nameExperiment, experimentFolder):
 
@@ -581,233 +591,79 @@ def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_
 		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'time_step', 'campaings'])
 		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, time_step, campaings])
 
+# ARQUITECTURES DEFINITIONS
+def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes):
 
-# TRAIN MODELS FUNCTIONS
-# LSTM || CNN
-def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
-	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
-	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+	#--------------
+	# LSTM block
+	#--------------
+	# Check if the user has entered at least one hidden layer sequence
+	if nLayersSequence > 0:
+	  # Has two hidden LSTM layers
+	  if nLayersSequence > 1:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
 
-	# hyperparameters
-	#lr = 1e-02
-	#batch_size = 16
-	#epochs = 100
-	#shuffle = False
-	#percentageDropout = 0.3
-	#nNeurons = [16,8]
-	#nNeuronsSequence = [64,64]
-	#nNeuronsConv1D = [128,256,128]
+	    for i in range(1,nLayersSequence-1):
+	      x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
 
-	nLayers = len(nNeurons)
-	nLayersSequence = len(nNeuronsSequence)
-	nLayersConv1D = len(nNeuronsConv1D)
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
 
-	# date
-	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	  # Only one hidden LSTM layer
+	  else:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
 
-	# Experiment folder and name
-	nameModel = 'LSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)            
 
-	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
-
-	# If the experiment folder already exists, we will ignore it.
-	if os.path.exists(path_experiment):
-		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
-
-	# The experiment folder doesn't exists
 	else:
-		os.makedirs(path_experiment)
-
-		# Callback parameters
-		monitor_stop = 'val_loss' # What the model will check in order to stop the training
-		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
-
-		callbacks = []
-		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-		                                save_best_only=True, mode='min', verbose=1))
-		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
-
-		# Create the model
-		k.clear_session()
-		input = Input(shape=(time_step,num_features,))
-
-		#--------------
-		# LSTM block
-		#--------------
-		# Check if the user has entered at least one hidden layer sequence
-		if nLayersSequence > 0:
-		  # Has two hidden LSTM layers
-		  if nLayersSequence > 1:
-		    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
-
-		    for i in range(1,nLayersSequence-1):
-		      x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
-
-		    x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
-
-		  # Only one hidden LSTM layer
-		  else:
-		    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
-
-		  if percentageDropout > 0.0:
-		    x = Dropout(percentageDropout)(x)            
-
-		else:
-		  print("Please, insert at least one recurrent layer.")
-		  assert False
+	  print("Please, insert at least one recurrent layer.")
+	  assert False
 
 
-		#--------------
-		# CONV1D block
-		#--------------
-		# Check if the user has entered at least one hidden layer conv1D
-		if nLayersConv1D > 0:
-		    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
-		    #x_2 = BatchNormalization()(x_2)
+	#--------------
+	# CONV1D block
+	#--------------
+	# Check if the user has entered at least one hidden layer conv1D
+	if nLayersConv1D > 0:
+	    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
+	    #x_2 = BatchNormalization()(x_2)
 
-		    for i in range(1,nLayersConv1D):
-		      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
-		      #x_2 = BatchNormalization()(x_2)
+	    for i in range(1,nLayersConv1D):
+	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
+	      #x_2 = BatchNormalization()(x_2)
 
-		    x_2 = GlobalAveragePooling1D()(x_2)
+	    x_2 = GlobalAveragePooling1D()(x_2)
 
-		    if percentageDropout > 0.0:
-		      x_2 = Dropout(percentageDropout)(x_2)
+	    if percentageDropout > 0.0:
+	      x_2 = Dropout(percentageDropout)(x_2)
 
-		else:
-		  print("Please, insert at least one conv1D layer.")
-		  assert False
+	else:
+	  print("Please, insert at least one conv1D layer.")
+	  assert False
 
-		#--------------
-		# CONCATENATE LSTM + Conv1D
-		#--------------    
-		x = Concatenate()([x,x_2])
+	#--------------
+	# CONCATENATE LSTM + Conv1D
+	#--------------    
+	x = Concatenate()([x,x_2])
 
-		#--------------
-		# Dense block
-		#--------------
-		# ADD dense layer
-		if nLayers > 0:
-		  for i in range(0,nLayers):
-		    x = add_Dense_Layer(nNeurons[i], x)
+	#--------------
+	# Dense block
+	#--------------
+	# ADD dense layer
+	if nLayers > 0:
+	  for i in range(0,nLayers):
+	    x = add_Dense_Layer(nNeurons[i], x)
 
-		  # Add dropout before the output layer
-		  #if percentageDropout > 0.0:
-		    #x = Dropout(percentageDropout)(x)  
+	  # Add dropout before the output layer
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)  
 
-		# Output
-		output = Dense(num_classes, activation='softmax',
-		                kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+	# Output
+	output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
-		model = Model(input,output)
+	return output
 
-		# Show the neural net
-		print(model.summary())
-
-		# Compiling the neural network
-		model.compile(
-		    optimizer=adam(lr=lr), 
-		    loss=loss_function, 
-		    metrics =metrics)
-
-		# Training the model
-		history = model.fit(
-		    x=x_train,
-		    validation_data=(x_test,y_test),
-		    y=y_train,
-		    batch_size=batch_size, 
-		    epochs=epochs, 
-		    shuffle=shuffle,
-		    callbacks=callbacks,
-		    verbose=1)
-
-		plt.figure(figsize=(10,5))
-		plt.xlabel('Epoch')
-		plt.ylabel('Loss')
-		plt.yscale('log')
-		  
-		# Error de entrenamiento
-		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-		# Error de validación
-		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
-
-		plt.legend()
-
-		print('|Precisión en Entrenamiento|')
-		print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
-		print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-		print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-		print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
-
-		print("")
-
-		print('|Precisión en Validación|')
-		print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
-		print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-		print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-		print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
-
-		# Clean the folder where the models are saved
-		best_model_name = cleanExperimentFolder(path_experiment)
-
-		# Save figure
-		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
-
-# LSTM -> CNN
-def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
-	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
-	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
-
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
-
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
-
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
-
-  # Experiment folder and name
-  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
-
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
-
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
-
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
-
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
-
-    # Create the model
-    k.clear_session()
-    input = Input(shape=(time_step,num_features,))
+def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes):
 
     #--------------
     # LSTM block
@@ -862,112 +718,10 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
     # Output
     output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
-    
-    model = Model(input,output)
 
-    # Show the neural net
-    print(model.summary())
-  
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss=loss_function, 
-        metrics = metrics)
+    return output
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        validation_data=(x_test,y_test),
-        y=y_train,
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
-
-    plt.legend()
-
-    print('|Precisión en Entrenamiento|')
-    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
-    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
-
-    print("")
-
-    print('|Precisión en Validación|')
-    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
-    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
-
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
-
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
-
-# CNN -> LSTM
-def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
- patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
-  nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
-
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
-
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
-
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
-
-  # Experiment folder and name
-  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
-
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
-
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
-
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
-
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
-
-    # Create the model
-    k.clear_session()
-    input = Input(shape=(substeps,time_step,num_features,))
+def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes):
 
     #--------------
     # CONV1D block
@@ -1030,8 +784,324 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
         #x = Dropout(percentageDropout)(x)  
 
     # Output
-    output = Dense(num_classes, activation='softmax',
-                    kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+    return output	
+
+def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes):
+
+	#--------------
+	# LSTM block
+	#--------------
+	# ADD Recurrent layer
+	# Check if the user has entered at least one hidden layer sequence
+	if nLayersSequence > 0:
+	  # The user has entered two hidden layers
+	  if nLayersSequence > 1:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
+
+	    for i in range(1,nLayersSequence-1):
+	      x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
+
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
+
+	  # The user has entered only one hidden layer
+	  else:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
+	      
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
+	else:
+	  print("Please, insert at least one recurrent layer.")
+	  assert False
+
+	#--------------
+	# Dense block
+	#--------------
+	# ADD dense layer
+	if nLayers > 0:
+	  for i in range(0,nLayers):
+	    x = add_Dense_Layer(nNeurons[i], x)
+
+	  # Add dropout before the output layer
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
+
+	# Output
+	output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+	return output
+
+# TRAIN MODELS FUNCTIONS
+# LSTM || CNN
+def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
+	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'LSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	# If the experiment folder already exists, we will ignore it.
+	if os.path.exists(path_experiment):
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		output = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes)
+
+		model = Model(input,output)
+
+		# Show the neural net
+		print(model.summary())
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics =metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+
+		print('|Precisión en Entrenamiento|')
+		print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+		print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
+		print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
+		print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+		print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
+		print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
+		print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+# LSTM + CNN
+def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
+	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+  # hyperparameters
+  #lr = 1e-02
+  #batch_size = 16
+  #epochs = 100
+  #shuffle = False
+  #percentageDropout = 0.3
+  #nNeurons = [16,8]
+  #nNeuronsSequence = [64,64]
+  #nNeuronsConv1D = [128,256,128]
+
+  nLayers = len(nNeurons)
+  nLayersSequence = len(nNeuronsSequence)
+  nLayersConv1D = len(nNeuronsConv1D)
+
+  # date
+  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+  # Experiment folder and name
+  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  
+  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+  # If the experiment folder already exists, we will ignore it.
+  if os.path.exists(path_experiment):
+    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+  # The experiment folder doesn't exists
+  else:
+    os.makedirs(path_experiment)
+
+    # Callback parameters
+    monitor_stop = 'val_loss' # What the model will check in order to stop the training
+    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+    callbacks = []
+    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+                                    save_best_only=True, mode='min', verbose=1))
+    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+    # Create the model
+    k.clear_session()
+
+    input = Input(shape=(time_step,num_features,))
+    output = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes)
+    
+    model = Model(input,output)
+
+    # Show the neural net
+    print(model.summary())
+  
+    # Compiling the neural network
+    model.compile(
+        optimizer=adam(lr=lr), 
+        loss=loss_function, 
+        metrics = metrics)
+
+    # Training the model
+    history = model.fit(
+        x=x_train,
+        validation_data=(x_test,y_test),
+        y=y_train,
+        batch_size=batch_size, 
+        epochs=epochs, 
+        shuffle=shuffle,
+        callbacks=callbacks,
+        verbose=1)
+    
+    plt.figure(figsize=(10,5))
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.yscale('log')
+      
+    # Error de entrenamiento
+    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+    # Error de validación
+    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+    plt.legend()
+
+    print('|Precisión en Entrenamiento|')
+    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
+    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
+    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+
+    print("")
+
+    print('|Precisión en Validación|')
+    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
+    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
+    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+
+    # Clean the folder where the models are saved
+    best_model_name = cleanExperimentFolder(path_experiment)
+
+    # Save figure
+    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+# CNN + LSTM
+def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+ patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
+  nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+  # hyperparameters
+  #lr = 1e-02
+  #batch_size = 16
+  #epochs = 100
+  #shuffle = False
+  #percentageDropout = 0.3
+  #nNeurons = [16,8]
+  #nNeuronsSequence = [64,64]
+  #nNeuronsConv1D = [128,256,128]
+
+  nLayers = len(nNeurons)
+  nLayersSequence = len(nNeuronsSequence)
+  nLayersConv1D = len(nNeuronsConv1D)
+
+  # date
+  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+  # Experiment folder and name
+  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  
+  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+  # If the experiment folder already exists, we will ignore it.
+  if os.path.exists(path_experiment):
+    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+  # The experiment folder doesn't exists
+  else:
+    os.makedirs(path_experiment)
+
+    # Callback parameters
+    monitor_stop = 'val_loss' # What the model will check in order to stop the training
+    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+    callbacks = []
+    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+                                    save_best_only=True, mode='min', verbose=1))
+    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+    # Create the model
+    k.clear_session()
+
+    input = Input(shape=(substeps,time_step,num_features,))
+    output = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
     
     model = Model(input,output)
 
@@ -1095,15 +1165,6 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
 	experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-
   nLayers = len(nNeurons)
   nLayersSequence = len(nNeuronsSequence)
 
@@ -1136,48 +1197,9 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
     # Create the model
     k.clear_session()
+
     input = Input(shape=(time_step,num_features,))
-
-    #--------------
-    # LSTM block
-    #--------------
-    # ADD Recurrent layer
-    # Check if the user has entered at least one hidden layer sequence
-    if nLayersSequence > 0:
-      # The user has entered two hidden layers
-      if nLayersSequence > 1:
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
-
-        for i in range(1,nLayersSequence-1):
-          x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
-
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
-  
-      # The user has entered only one hidden layer
-      else:
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
-          
-      if percentageDropout > 0.0:
-        x = Dropout(percentageDropout)(x)
-    else:
-      print("Please, insert at least one recurrent layer.")
-      assert False
-
-    #--------------
-    # Dense block
-    #--------------
-    # ADD dense layer
-    if nLayers > 0:
-      for i in range(0,nLayers):
-        x = add_Dense_Layer(nNeurons[i], x)
-
-      # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
-
-    # Output
-    output = Dense(num_classes, activation='softmax',
-                    kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+    output = defineLSTM(input,nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
     
     model = Model(input,output)
 
@@ -1232,6 +1254,106 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+# LSTM with 4 outpus
+def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
+	experimentFolder,campaingsFull):
+
+  nLayers = len(nNeurons)
+  nLayersSequence = len(nNeuronsSequence)
+
+  # date
+  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+  # Experiment folder and name
+  nameModel = 'LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
+  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+  # If the experiment folder already exists, we will ignore it.
+  if os.path.exists(path_experiment):
+    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+  # The experiment folder doesn't exists
+  else:
+    os.makedirs(path_experiment)
+
+    # Callback parameters
+    monitor_stop = 'val_loss' # What the model will check in order to stop the training
+    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+    callbacks = []
+    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+                                    save_best_only=True, mode='min', verbose=1))
+    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+    # Create the model
+    k.clear_session()
+
+    input = Input(shape=(time_step,num_features,))
+    output_1 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
+    output_2 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
+    output_3 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
+    output_4 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes)
+    
+    model = Model(input,[output_1,output_2,output_3,output_4])
+
+    # Show the neural net
+    print(model.summary())
+
+    # Compiling the neural network
+    model.compile(optimizer=adam(lr=lr), 
+        loss={'water_t1_output' : loss_function, 'water_t2_output' : loss_function, 'water_t3_output': loss_function, 'water_t4_output' : loss_function},
+        lossWeights={'water_t1_output' : 1.0, 'water_t2_output' : 1.0, 'water_t3_output': 1.0, 'water_t4_output' : 1.0},
+        metrics=metrics)
+
+    # Training the model
+    history = model.fit(
+        x=x_train,
+        y={'water_t1_output' : y_train_t1, 'water_t2_output' : y_train_t2, 'water_t3_output': y_train_t3, 'water_t4_output' : y_train_t4},
+        validation_data=(x_test,{'water_t1_output' : y_test_t1, 'water_t2_output' : y_test_t2, 'water_t3_output': y_test_t3, 'water_t4_output' : y_test_t4}),
+        batch_size=batch_size, 
+        epochs=epochs, 
+        shuffle=shuffle,
+        callbacks=callbacks,
+        verbose=1)
+    
+    plt.figure(figsize=(10,5))
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.yscale('log')
+      
+    # Error de entrenamiento
+    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+    # Error de validación
+    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+    plt.legend()
+
+    print('|Precisión en Entrenamiento|')
+    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
+    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
+    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+
+    print("")
+
+    print('|Precisión en Validación|')
+    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
+    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
+    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+
+    # Clean the folder where the models are saved
+    best_model_name = cleanExperimentFolder(path_experiment)
+
+    # Save figure
+    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+
 
 def main():
 
@@ -1291,10 +1413,6 @@ def main():
 	# Combine the two indexes (sentinel1 and sentinel2)
 	indexes = indexes_sentinel1_v2 + indexes_sentinel2
 
-	if args.labels_header == '':
-		print("Error -> 'labels_header' not specified")
-		sys.exit()
-
 	if args.labels == '':
 		print("Error -> 'labels' not specified")
 		sys.exit()
@@ -1331,11 +1449,11 @@ def main():
 
 		# Load data
 		if args.campaingsFull:
-			splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=args.tags_name,labels_header=args.labels_header)
-			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(labels,indexes,campaings,path_radar,args.labels_header,interpolate)
+			labels_header = splitTrainTestCampaings(test_size=0.3,campaings=campaings,path_radar=path_radar,tags_name=args.tags_name)
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamplesFull(labels,indexes,campaings,path_radar,interpolate)
 
 		else:
-			x_train, y_train, x_test, y_test, time_step, num_features, num_classes = loadSamples(args.tags_name,labels,indexes,campaings,path_radar,args.labels_header,interpolate)
+			x_train, y_train, x_test, y_test, time_step, num_features, num_classes, labels_header = loadSamples(args.tags_name,labels,indexes,campaings,path_radar,interpolate)
 
 		# Create 'scaler folder'
 		path_folderScalers = os.path.join(nameExperimentsFolder,args.nameExperiment,"scalers")
@@ -1348,7 +1466,7 @@ def main():
 		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
 		if not os.path.exists(path_folderOptions):
 			os.mkdir(path_folderOptions)
-		writeOptions(path_optionsFile, args.nameExperiment, indexes, interpolate, args.labels_header, labels, colors_label, args.campaingsFull, args.tags_name, time_step, campaings)
+		writeOptions(path_optionsFile, args.nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, args.tags_name, time_step, campaings)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
