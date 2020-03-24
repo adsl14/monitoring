@@ -83,7 +83,7 @@ def loadOptions(pathOptions):
 
 	indexes = dataframe["indexes"].values[0].strip('][').replace("'","").replace(" ","").split(',')
 	labels = dataframe["labels"].values[0].strip('][').replace("'","").replace(" ","").split(',')
-	labels_header = dataframe["labels_header"].values[0]
+	labels_header = dataframe["labels_header"].values[0].strip('][').replace("'","").replace(" ","").split(',')
 	interpolate =  bool(dataframe["interpolate"].values[0])
 	time_step =  int(dataframe["time_step"].values[0])
 	num_features = len(indexes)
@@ -150,7 +150,8 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 
 	# Read the test .csv
 	tagDataFrame = pd.read_csv(path_tags)
-	tagDataFrame = tagDataFrame[tagDataFrame[labels_header] != -1]
+	for label_header in labels_header:
+		tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
 	tagDataFrameName = tagDataFrame["id"]
 	print(" '%s' de test cargado correctamente" %(tags_name))
 
