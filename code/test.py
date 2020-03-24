@@ -22,7 +22,7 @@ def defineArgParsers():
 	parser.add_argument("--networkPath",type=str, default='', help="Path where the model is located")
 	parser.add_argument("--campaingPath",type=str, default='', help="Path where the campaing data is located")
 	parser.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions")
-	parser.add_argument("--experimentName",type=str, default='', help="Experiment name (activity,rice)")
+	parser.add_argument("--nameExperiment",type=str, default='', help="Experiment name (activity,rice)")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
 
 	return parser.parse_args()
@@ -301,9 +301,9 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, steps, fea
 		output_file.close()
 		print('Results saved in %s' % (output_path))
 
-def TestModels(modelsExperiments,experimentName, campaingPath, tags_name):
+def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 
-	path_results = os.path.join("experiments",experimentName,"results")
+	path_results = os.path.join("experiments",nameExperiment,"results")
 	campaingName = campaingPath.split("\\")[-1]
 
 	# Check if the folder 'results' exists. If not, we'll create it
@@ -335,25 +335,25 @@ def TestModels(modelsExperiments,experimentName, campaingPath, tags_name):
 				for modelExperiment in modelsExperiments:
 
 					# Load scaler (normalize data)
-					scalerPath = os.path.join("experiments",experimentName,"scalers",modelExperiment+"-scaler.pkl")
+					scalerPath = os.path.join("experiments",nameExperiment,"scalers",modelExperiment+"-scaler.pkl")
 					scaler = load(open(scalerPath, 'rb'))
 					print("Scaler: %s loaded" %(scalerPath))
 
 					# Load options
-					indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",experimentName,"options",modelExperiment+".csv"))
+					indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",nameExperiment,"options",modelExperiment+".csv"))
 
 					# Load data
 					x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
 					x_data_aux = None
 
 					# Get each model name from one experiment name
-					modelsName = os.listdir(os.path.join("experiments",experimentName,"models",modelExperiment))
+					modelsName = os.listdir(os.path.join("experiments",nameExperiment,"models",modelExperiment))
 
 					# Load each model from one experiment
 					for modelName in modelsName:
 
 						# Load model
-						model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,experimentName)
+						model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
 						exists, score = searchModelInFile(modelPath,input_reader)
 
 						# The model has already tested
@@ -384,25 +384,25 @@ def TestModels(modelsExperiments,experimentName, campaingPath, tags_name):
 			for modelExperiment in modelsExperiments:
 
 				# Load scaler (normalize data)
-				scalerPath = os.path.join("experiments",experimentName,"scalers",modelExperiment+"-scaler.pkl")
+				scalerPath = os.path.join("experiments",nameExperiment,"scalers",modelExperiment+"-scaler.pkl")
 				scaler = load(open(scalerPath, 'rb'))
 				print("Scaler: %s loaded" %(scalerPath))
 
 				# Load options
-				indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",experimentName,"options",modelExperiment+".csv"))
+				indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",nameExperiment,"options",modelExperiment+".csv"))
 
 				# Load data
 				x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
 				x_data_aux = None
 
 				# Get each model name from one experiment name
-				modelsName = os.listdir(os.path.join("experiments",experimentName,"models",modelExperiment))
+				modelsName = os.listdir(os.path.join("experiments",nameExperiment,"models",modelExperiment))
 
 				# Load each model from one experiment
 				for modelName in modelsName:
 
 					# Load model
-					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,experimentName)
+					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
 					WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels)
 
 		# Closing the file
@@ -450,17 +450,17 @@ def main():
 	# Load multiple models
 	else:
 
-		if args.experimentName == '':
-			print("Error -> 'experimentName' not specified")
+		if args.nameExperiment == '':
+			print("Error -> 'nameExperiment' not specified")
 			sys.exit()
 
-		modelsExperiments = os.listdir(os.path.join("experiments",args.experimentName,"models"))
+		modelsExperiments = os.listdir(os.path.join("experiments",args.nameExperiment,"models"))
 
 		# Load one campaing
 		if args.campaingPath != '':
 			# Load tag filename
 			if args.tags_name != '':
-				TestModels(modelsExperiments, args.experimentName, args.campaingPath, args.tags_name)
+				TestModels(modelsExperiments, args.nameExperiment, args.campaingPath, args.tags_name)
 			else:
 				print("Error -> 'tags_name' not specified")
 				sys.exit()
