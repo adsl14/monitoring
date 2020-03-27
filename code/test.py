@@ -51,8 +51,13 @@ def show_confussionMatrix(matrix,labels):
 		for j in range(0,cols):
 			print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
 
-def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, features, labels):
+def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, features, labels, labels_header):
   
+	start_score_index = 0
+	loss_outputs = list()
+	accuracy_outputs = list()
+	num_outputs = len(labels_header)
+
 	# Load the best model for that experiment
 	model = load_model(best_model_path)
 
@@ -63,23 +68,50 @@ def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, feat
 	# Get the predictions
 	predictions = model.predict(x_test)
 
+	# Check if the predictions var is a list (multiple outputs) or a numpy array (one output)
+	if num_outputs > 1:
+
+		start_score_index = 1
+
+		# Modify y_test for multiple_outputs
+		y_test_temp = list()
+		for i in range(0,num_outputs):
+			y_test_temp.append(y_test[:,i])
+
+		y_test = y_test_temp
+
+	else:
+		# Convert to a list the predictions
+		predictions = list([predictions])
+
+		# Convert to a list the original outputs
+		y_test = list([y_test])
+
 	# Confusion matrix
-	cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
+	#cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))		
 
 	# Evaluate test data
 	score = model.evaluate(x_test, y_test, verbose=0)
 
-	print("RESULTS")
-	print("------------------------")
-	print("Confusion matrix")
-	show_confussionMatrix(cm,labels)
-	print("------------------------")
-	print("Score")
-	print("Test loss:", score[0])
-	print("Test accuracy:", str(round(score[1]*100,2)) + ' %')
-	print("------------------------")
+	#print("RESULTS")
+	#print("------------------------")
+	#print("Confusion matrix")
+	#show_confussionMatrix(cm,labels)
+	#print("------------------------")
+	#print("Score")
+	#print("Test loss:", score[0])
+	#print("Test accuracy:", str(round(score[1]*100,2)) + ' %')
+	#print("------------------------")
 
-	output_writer.writerow([best_model_path, score[0], str(round(score[1]*100,2)) + ' %'])
+	# Move index in the score array by '2' if the network has multiple outputs. Or by '1' if there is only one output ['loss','accuracy']
+	j = start_score_index
+	for i in range(0,num_outputs):
+
+		loss_outputs.append(score[j])
+		accuracy_outputs.append(str(round(score[j+1]*100,2)) + ' %')
+		j = j + 2
+
+	output_writer.writerow([best_model_path] + loss_outputs + accuracy_outputs)
 	print("Model %s results saved correctly \n \n" % (best_model_path))
 
 def loadOptions(pathOptions):
@@ -392,6 +424,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 
 				# Write the header
 				output_writer = csv.writer(output_file, delimiter=',')
+				output_writer.writerow(["Name","Loss","Accuracy"])
 				input_reader = csv.reader(input_file)
 
 				# Read each modelExperiment from each experiment in 'models' folder
@@ -406,7 +439,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 					indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",nameExperiment,"options",modelExperiment+".csv"))
 
 					# Load data
-					x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
+					x_data, y_data, tagDataFrameName, num_regions = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
 					x_data_aux = None
 
 					# Get each model name from one experiment name
@@ -422,11 +455,11 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 						# The model has already tested
 						if exists:
 							print('Ignored the model %s' %(modelPath))
-							output_writer.writerow([modelPath, score[0], score[1]])
+							output_writer.writerow([modelPath] + score)
 						# Test the new model
 						else:
 							print("Loading %s" %(modelPath))
-							WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels)
+							WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
 
 		# Remove the original file
 		os.remove(fileOutputName)
@@ -440,6 +473,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 	# Create a new one
 	else:
 		with open(fileOutputName,mode='w',newline='') as output_file:
+
 			output_writer = csv.writer(output_file,delimiter=',')
 			output_writer.writerow(["Name","Loss","Accuracy"])
 
@@ -455,7 +489,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 				indexes, labels, labels_header, interpolate, time_step, num_features, num_classes = loadOptions(os.path.join("experiments",nameExperiment,"options",modelExperiment+".csv"))
 
 				# Load data
-				x_data, y_data, tagDataFrameName = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
+				x_data, y_data, tagDataFrameName, num_regions = loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
 				x_data_aux = None
 
 				# Get each model name from one experiment name
@@ -466,7 +500,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 
 					# Load model
 					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
-					WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels)
+					WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
 
 		# Closing the file
 		output_file.close()
