@@ -19,11 +19,16 @@ from pickle import load
 def defineArgParsers():
 
 	parser = argparse.ArgumentParser(description='Test model.')
-	parser.add_argument("--networkPath",type=str, default='', help="Path where the model is located")
-	parser.add_argument("--campaingPath",type=str, default='', help="Path where the campaing data is located")
-	parser.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions")
-	parser.add_argument("--nameExperiment",type=str, default='', help="Experiment name (activity,rice)")
-	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
+
+	# MANDATORY
+	required = parser.add_argument_group('required arguments')
+	required.add_argument("--campaingPath", type=str, default='', help="Path where the campaing data is located")
+	required.add_argument("--tags_name", type=str, default='', help="Tag filename of the regions. Only requerided when 'networkPath' is empty")
+	required.add_argument("--nameExperiment", type=str, default='', help="Experiment name (activity,rice). Only requerided when 'networkPath' is empty")
+
+	# OPTIONAL
+	parser.add_argument("--networkPath", type=str, default='', help="Path where the model is located")
+	parser.add_argument("--percentageGPU", type=float, default=0.0, help="Amount of use the memory of the GPU")
 
 	return parser.parse_args()
 
@@ -89,7 +94,7 @@ def loadOptions(pathOptions):
 	num_features = len(indexes)
 	num_classes = len(labels)
 
-	return indexes, labels, labels_header, interpolate, time_step, num_features, num_classes;
+	return indexes, np.array(labels), labels_header, interpolate, time_step, num_features, num_classes;
 
 def loadData(campaingPath, networkPath, indexes, labels, interpolate, time_step, num_features, scaler):
 
@@ -203,7 +208,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
 
-	return x_data, y_data, tagDataFrameName
+	return x_data, y_data, tagDataFrameName, total_test
 
 def LoadModel(model_parameters, modelExperiment, nameExperiment='activity'):
 
@@ -219,8 +224,14 @@ def LoadModel(model_parameters, modelExperiment, nameExperiment='activity'):
 
 	return model, modelPath, best_model_name
 
-def TestModelTag(model,modelPath, x_test,y_test, labels, steps, features, num_classes, tagDataFrameName, output_path):
+def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_header, steps, features, num_classes, tagDataFrameName, output_path):
   
+	name_outputs = list()
+	real_tag_name = list()
+	predicted_tag_name = list()
+	num_outputs = len(labels_header)
+	start_score_index = 0
+
 	modelSplitPath = modelPath.split("\\")
 	path_results = os.path.join("experiments",modelSplitPath[1],"results")
 
@@ -236,43 +247,85 @@ def TestModelTag(model,modelPath, x_test,y_test, labels, steps, features, num_cl
 	# Get the predictions
 	predictions = model.predict(x_test)
 
+	# Check if the predictions var is a list (multiple outputs) or a numpy array (one output)
+	if num_outputs > 1:
+
+		start_score_index = 1
+
+		# Modify y_test for multiple_outputs
+		y_test_temp = list()
+		for i in range(0,num_outputs):
+			y_test_temp.append(y_test[:,i])
+			real_tag_name.append("Real_" + str(i+1))
+			predicted_tag_name.append("Predicted_" + str(i+1))
+
+		y_test = y_test_temp
+
+	else:
+
+		# Convert to a list the predictions
+		predictions = list([predictions])
+
+		# Convert to a list the original outputs
+		y_test = list([y_test])
+
+		real_tag_name.append("Real")
+		predicted_tag_name.append("Predicted")
+
 	# Evaluate test data
 	score = model.evaluate(x_test, y_test, verbose=0)
-
-	# Get the confussion matrix
-	cm = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))
 
 	with open(output_path, mode='w', newline="") as output_file:
 
 		output_writer = csv.writer(output_file, delimiter=',')
-		output_writer.writerow(['Name', 'Loss', 'Accuracy'])
-		output_writer.writerow([modelPath,score[0],str(round(score[1]*100,2)) + ' %'])
-		output_writer.writerow([])
 
-		name_label = ['Real/Predicted']
-		name_label.extend(labels)
-		output_writer.writerow(name_label)
+		# Write output
+		k = start_score_index
+		for j in range(0,num_outputs):
 
-		# Write confusion matrix in file
-		for i in range(0,num_classes):
-			row = [labels[i]]
-			row.extend(cm[i,:])
-			output_writer.writerow(row)
+			output_writer.writerow(['Name', 'Loss', 'Accuracy'])
+			output_writer.writerow([modelPath,score[k],str(round(score[k+1]*100,2)) + ' %'])
+			output_writer.writerow([])
+
+			name_label = ['Real/Predicted_' + str(j+1)]
+			name_label.extend(labels)
+			output_writer.writerow(name_label)
+
+			# Get the confussion matrix
+			cm = confusion_matrix(y_test[j].argmax(axis=1), predictions[j].argmax(axis=1))		
+
+			# Write confusion matrix in file
+			for i in range(0,num_classes):
+				row = [labels[i]]
+				row.extend(cm[i,:])
+				output_writer.writerow(row)
+
+			output_writer.writerow([])
+
+			k = k + 2
+
+		# Convert the list output to numpy in order to get, for each output, the list of predictions for each sample
+		predictions = np.array(predictions)
+		y_test = np.array(y_test)
 
 		# Write each area prediction
-		num_samples = y_test.shape[0]
 		output_writer.writerow([])
-		output_writer.writerow(['Area', 'Real', 'Predicted'])
-		for i in range(0,num_samples):
-			output_writer.writerow([tagDataFrameName[i].split("/")[-1], labels[np.argmax(y_test[i])],labels[np.argmax(predictions[i])]])
+
+		output_writer.writerow(['Area'] + real_tag_name + predicted_tag_name)
+		for i in range(0,num_regions):
+			output_writer.writerow([tagDataFrameName[i].split("/")[-1]] + list(labels[y_test[:,i].argmax(axis=1)]) + list(labels[predictions[:,i].argmax(axis=1)]))
 
 		# Closing the file
 		output_file.close()
 
 		print('Results saved in %s' % (output_path))
 
-def TestModel(model, modelPath, x_test, regions, num_regions, labels, steps, features, output_path):
-  
+def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_header, steps, features, output_path):
+
+	argPredictions = list()
+	name_outputs = list()
+	num_outputs = len(labels_header)
+
 	modelSplitPath = modelPath.split("\\")
 	path_results = os.path.join("experiments",modelSplitPath[1],"results")
 
@@ -287,16 +340,25 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, steps, fea
 
 	# Get the predictions
 	predictions = model.predict(x_test)
-	argPredictions = predictions.argmax(axis=1)
+
+	# Convert the 'predictions' var to a list if the number of outputs is equal to 1 (means, for one output, 'predictions' var won't be a list)
+	if num_outputs == 1:
+		predictions = list([predictions])
+
+	predictions = np.array(predictions)
 
 	with open(output_path, mode='w', newline="") as output_file:
 
 		output_writer = csv.writer(output_file, delimiter=',')
 		output_writer.writerow(['NameModel',modelPath])
-		output_writer.writerow(['Name', 'Class'])
+
+		for i in range(0,num_outputs):
+			name_outputs.append('Class_' + str(i+1))
+
+		output_writer.writerow(['Name'] + name_outputs)
 
 		for i in range(0,num_regions):
-			output_writer.writerow([regions[i], labels[argPredictions[i]]])
+			output_writer.writerow([regions[i]] + list(labels[predictions[:,i].argmax(axis=1)]))
 
 		# Closing the file
 		output_file.close()
@@ -436,14 +498,14 @@ def main():
 			# Load tag filename
 			if args.tags_name != '':
 				# Load data
-				x_data, y_data, tagDataFrameName = loadDataTag(args.campaingPath, args.tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
-				TestModelTag(model, args.networkPath, x_data, y_data, labels, time_step, num_features, num_classes, tagDataFrameName, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-loss_predictions.csv"))
+				x_data, y_data, tagDataFrameName, num_regions = loadDataTag(args.campaingPath, args.tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
+				TestModelTag(model, args.networkPath, x_data, y_data, num_regions, labels, labels_header, time_step, num_features, num_classes, tagDataFrameName, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-loss_predictions.csv"))
 
 			# Only predict without tags
 			else:
 				# Load data
 				x_data, regions, num_regions = loadData(args.campaingPath, args.networkPath, indexes, labels, interpolate, time_step, num_features, scaler)
-				TestModel(model, args.networkPath, x_data, regions, num_regions, labels, time_step, num_features, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-predictions.csv"))
+				TestModel(model, args.networkPath, x_data, regions, num_regions, labels, labels_header, time_step, num_features, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-predictions.csv"))
 		else:
 			print("Error -> 'campaingPath' not specified")
 			sys.exit()
