@@ -626,9 +626,11 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	# Check if the user has entered at least one hidden layer conv1D
 	if nLayersConv1D > 0:
 	    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
+	    #x_2 = BatchNormalization()(x_2)
 
 	    for i in range(1,nLayersConv1D):
 	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
+	      #x_2 = BatchNormalization()(x_2)
 
 	      if i % 2 == 1:
 	      	x_2 = MaxPooling1D()(x_2)          	
@@ -688,9 +690,11 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
         x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
+        #x = BatchNormalization()(x)
 
         for i in range(1,nLayersConv1D):
           x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
+          #x = BatchNormalization()(x)
 
           if i % 2 == 1:
           	x = MaxPooling1D()(x)          	
