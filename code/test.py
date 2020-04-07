@@ -62,7 +62,7 @@ def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, feat
 	model = load_model(best_model_path)
 
 	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN" == best_model_path.split("\\")[-2][0:3]:
+	if "CNN_LSTM" == best_model_path.split("\\")[-2][0:8]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 
 	# Get the predictions
@@ -173,7 +173,7 @@ def loadData(campaingPath, networkPath, indexes, labels, interpolate, time_step,
 
 	# Check if the model needs to reshape the input (CNN)
 	modelName = networkPath.split("\\")[-2]
-	if modelName[0:3] == "CNN":
+	if modelName[0:8] == "CNN_LSTM":
 		# Reshape due to CNN needs a vector of 4D
 		x_data = x_data.reshape((x_data.shape[0], 1, time_step, num_features))
 
@@ -272,7 +272,7 @@ def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_hea
 		os.mkdir(path_results)
 
 	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN" == modelSplitPath[-1][0:3]:
+	if "CNN_LSTM" == modelSplitPath[-1][0:8]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
@@ -366,7 +366,7 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_hea
 		os.mkdir(path_results)
 
 	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN" == modelSplitPath[-1][0:3]:
+	if "CNN_LSTM" == modelSplitPath[-1][0:8]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
