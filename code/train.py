@@ -954,7 +954,9 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		    epochs=epochs, 
 		    shuffle=shuffle,
 		    callbacks=callbacks,
-		    verbose=1)
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
 		plt.figure(figsize=(10,5))
 		plt.xlabel('Epoch')
@@ -1072,7 +1074,9 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		    epochs=epochs, 
 		    shuffle=shuffle,
 		    callbacks=callbacks,
-		    verbose=1)
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
 		plt.figure(figsize=(10,5))
 		plt.xlabel('Epoch')
@@ -1180,7 +1184,9 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1297,7 +1303,9 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)    
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)    
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1408,7 +1416,9 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1529,7 +1539,9 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1624,7 +1636,9 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1728,7 +1742,9 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1835,7 +1851,9 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
@@ -1952,7 +1970,9 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
         epochs=epochs, 
         shuffle=shuffle,
         callbacks=callbacks,
-        verbose=1)
+        verbose=1,
+        workers=6,
+        use_multiprocessing=True)
     
     plt.figure(figsize=(10,5))
     plt.xlabel('Epoch')
