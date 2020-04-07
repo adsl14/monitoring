@@ -2124,7 +2124,13 @@ def main():
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
 		nNeuronsConv1D = [int(i) for i in args.nNeuronsConv1D.split(",")]
-		nNeurons = [int(i) for i in args.nNeurons.split(",")]
+
+		# If the list is not empty, there are dense neurons in hidden layer
+		if args.nNeurons != "":
+			nNeurons = [int(i) for i in args.nNeurons.split(",")]
+		else:
+			nNeurons = []
+		
 
 		if args.network == "LSTM_p_CNN":
 
