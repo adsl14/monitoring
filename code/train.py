@@ -591,8 +591,9 @@ def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_
 		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'time_step', 'campaings'])
 		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, time_step, campaings])
 
-# ARQUITECTURES DEFINITIONS
-def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, nameOutputLayer):
+# TRAIN MODELS FUNCTIONS
+# LSTM || CNN
+def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
 
 	#--------------
 	# LSTM block
@@ -659,228 +660,10 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 
 	  # Add dropout before the output layer
 	  #if percentageDropout > 0.0:
-	    #x = Dropout(percentageDropout)(x)  
-
-	# Output
-	output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name=nameOutputLayer)(x)
-
-	return output
-
-def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, nameOutputLayer):
-
-    #--------------
-    # LSTM block
-    #--------------
-    # Check if the user has entered at least one hidden layer sequence
-    if nLayersSequence > 0:
-      x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
-
-      for i in range(1,nLayersSequence):
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
-
-      if percentageDropout > 0.0:
-            x = Dropout(percentageDropout)(x)  
-    else:
-      print("Please, insert at least one recurrent layer.")
-      assert False
-
-    #--------------
-    # CONV1D block
-    #--------------
-    # Check if the user has entered at least one hidden layer conv1D
-    if nLayersConv1D > 0:
-        x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
-        #x = BatchNormalization()(x)
-
-        for i in range(1,nLayersConv1D):
-          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
-          #x = BatchNormalization()(x)
-
-          if i % 2 == 1:
-          	x = MaxPooling1D()(x)          	
-          	if percentageDropout > 0.0:
-          		x = Dropout(percentageDropout)(x)
-
-        # Apply global average pooling and make the output only one dimension
-        #x = GlobalAveragePooling1D()(x)
-        x = Flatten()(x)   
-
-    else:
-      print("Please, insert at least one conv1D layer.")
-      assert False
-
-    #--------------
-    # Dense block
-    #--------------
-    # ADD dense layer
-    if nLayers > 0:
-      for i in range(0,nLayers):
-        x = add_Dense_Layer(nNeurons[i], x)
-
-      # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)  
-
-    # Output
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name=nameOutputLayer)(x)
-
-    return output
-
-def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, nameOutputLayer):
-
-    #--------------
-    # CONV1D block
-    #--------------
-    # Check if the user has entered at least one hidden layer conv1D
-    if nLayersConv1D > 0:
-        x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[0], input)
-
-        for i in range(1,nLayersConv1D):
-          x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[i], x)
-
-          # Add a dropout and a Pooling each 2 conv1D layer
-          if i % 2 == 1:
-            x = TimeDistributed(MaxPooling1D())(x)
-            if percentageDropout > 0.0:
-              x = TimeDistributed(Dropout(percentageDropout))(x)
-
-        # Apply flatten
-        x = TimeDistributed(Flatten())(x)
-
-    else:
-      print("Please, insert at least one conv1D layer.")
-      assert False
- 
-    #--------------
-    # LSTM block
-    #--------------
-    # Check if the user has entered at least one hidden layer sequence
-    if nLayersSequence > 0:
-      # The user has entered two hidden layers
-      if nLayersSequence > 1:
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, x)
-
-        for i in range(1,nLayersSequence-1):
-          x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
-
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
-  
-      # The user has entered only one hidden layer
-      else:
-        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, x)
-
-      # Add dropout layer 
-      if percentageDropout > 0.0:
-        x = Dropout(percentageDropout)(x)
-    else:
-      print("Please, insert at least one recurrent layer.")
-      assert False
-
-    #--------------
-    # Dense block
-    #--------------
-    # ADD dense layer
-    if nLayers > 0:
-      for i in range(0,nLayers):
-        x = add_Dense_Layer(nNeurons[i], x)
-
-      # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)  
-
-    # Output
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name=nameOutputLayer)(x)
-
-    return output	
-
-def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, nameOutputLayer):
-
-	#--------------
-	# LSTM block
-	#--------------
-	# ADD Recurrent layer
-	# Check if the user has entered at least one hidden layer sequence
-	if nLayersSequence > 0:
-	  # The user has entered two hidden layers
-	  if nLayersSequence > 1:
-	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
-
-	    for i in range(1,nLayersSequence-1):
-	      x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
-
-	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
-
-	  # The user has entered only one hidden layer
-	  else:
-	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
-	      
-	  if percentageDropout > 0.0:
-	    x = Dropout(percentageDropout)(x)
-	else:
-	  print("Please, insert at least one recurrent layer.")
-	  assert False
-
-	#--------------
-	# Dense block
-	#--------------
-	# ADD dense layer
-	if nLayers > 0:
-	  for i in range(0,nLayers):
-	    x = add_Dense_Layer(nNeurons[i], x)
-
-	  # Add dropout before the output layer
-	  #if percentageDropout > 0.0:
 	    #x = Dropout(percentageDropout)(x)
 
-	# Output
-	output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name=nameOutputLayer)(x)
+	return x
 
-	return output
-
-def defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, nameOutputLayer):
-
-    #--------------
-    # CONV1D block
-    #--------------
-    # Check if the user has entered at least one hidden layer conv1D
-    if nLayersConv1D > 0:
-        x = add_Conv1D_Layer(nNeuronsConv1D[0], input)
-
-        for i in range(1,nLayersConv1D):
-          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
-
-          # Add a dropout and a Pooling each 2 conv1D layer
-          if i % 2 == 1:
-            x = MaxPooling1D()(x)
-            if percentageDropout > 0.0:
-              x = Dropout(percentageDropout)(x)
-
-        # Apply flatten
-        x = Flatten()(x)
-
-    else:
-      print("Please, insert at least one conv1D layer.")
-      assert False
-
-    #--------------
-    # Dense block
-    #--------------
-    # ADD dense layer
-    if nLayers > 0:
-      for i in range(0,nLayers):
-        x = add_Dense_Layer(nNeurons[i], x)
-
-      # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)  
-
-    # Output
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name=nameOutputLayer)(x)
-
-    return output	
-
-# TRAIN MODELS FUNCTIONS
-# LSTM || CNN
 def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
 	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
@@ -932,7 +715,8 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		k.clear_session()
 
 		input = Input(shape=(time_step,num_features,))
-		output = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output")
+		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
 		model = Model(input,output)
 
@@ -1041,10 +825,11 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		k.clear_session()
 
 		input = Input(shape=(time_step,num_features,))
-		output_1 = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_1")
-		output_2 = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_2")
-		output_3 = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_3")
-		output_4 = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_4")
+		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
 
 		model = Model(input,[output_1,output_2,output_3,output_4])
 		y_train_t1 = y_train[:,0]
@@ -1111,6 +896,63 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # LSTM + CNN
+def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
+
+    #--------------
+    # LSTM block
+    #--------------
+    # Check if the user has entered at least one hidden layer sequence
+    if nLayersSequence > 0:
+      x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
+
+      for i in range(1,nLayersSequence):
+        x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
+
+      if percentageDropout > 0.0:
+            x = Dropout(percentageDropout)(x)  
+    else:
+      print("Please, insert at least one recurrent layer.")
+      assert False
+
+    #--------------
+    # CONV1D block
+    #--------------
+    # Check if the user has entered at least one hidden layer conv1D
+    if nLayersConv1D > 0:
+        x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
+        #x = BatchNormalization()(x)
+
+        for i in range(1,nLayersConv1D):
+          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
+          #x = BatchNormalization()(x)
+
+          if i % 2 == 1:
+          	x = MaxPooling1D()(x)          	
+          	if percentageDropout > 0.0:
+          		x = Dropout(percentageDropout)(x)
+
+        # Apply global average pooling and make the output only one dimension
+        #x = GlobalAveragePooling1D()(x)
+        x = Flatten()(x)   
+
+    else:
+      print("Please, insert at least one conv1D layer.")
+      assert False
+
+    #--------------
+    # Dense block
+    #--------------
+    # ADD dense layer
+    if nLayers > 0:
+      for i in range(0,nLayers):
+        x = add_Dense_Layer(nNeurons[i], x)
+
+      # Add dropout before the output layer
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
+
+    return x
+
 def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
 	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
@@ -1162,7 +1004,8 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output")
+    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
 
@@ -1271,10 +1114,11 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output_1 = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_1")
-    output_2 = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_2")
-    output_3 = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_3")
-    output_4 = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_4")
+    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
     
     model = Model(input,[output_1,output_2,output_3,output_4])
     y_train_t1 = y_train[:,0]
@@ -1340,6 +1184,70 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # CNN + LSTM
+def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
+
+    #--------------
+    # CONV1D block
+    #--------------
+    # Check if the user has entered at least one hidden layer conv1D
+    if nLayersConv1D > 0:
+        x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[0], input)
+
+        for i in range(1,nLayersConv1D):
+          x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[i], x)
+
+          # Add a dropout and a Pooling each 2 conv1D layer
+          if i % 2 == 1:
+            x = TimeDistributed(MaxPooling1D())(x)
+            if percentageDropout > 0.0:
+              x = TimeDistributed(Dropout(percentageDropout))(x)
+
+        # Apply flatten
+        x = TimeDistributed(Flatten())(x)
+
+    else:
+      print("Please, insert at least one conv1D layer.")
+      assert False
+ 
+    #--------------
+    # LSTM block
+    #--------------
+    # Check if the user has entered at least one hidden layer sequence
+    if nLayersSequence > 0:
+      # The user has entered two hidden layers
+      if nLayersSequence > 1:
+        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, x)
+
+        for i in range(1,nLayersSequence-1):
+          x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
+
+        x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
+  
+      # The user has entered only one hidden layer
+      else:
+        x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, x)
+
+      # Add dropout layer 
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
+    else:
+      print("Please, insert at least one recurrent layer.")
+      assert False
+
+    #--------------
+    # Dense block
+    #--------------
+    # ADD dense layer
+    if nLayers > 0:
+      for i in range(0,nLayers):
+        x = add_Dense_Layer(nNeurons[i], x)
+
+      # Add dropout before the output layer
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
+
+    return x	
+
 def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
@@ -1391,8 +1299,9 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
     k.clear_session()
 
     input = Input(shape=(substeps,time_step,num_features,))
-    output = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output")
-    
+    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
     model = Model(input,output)
 
     # Show the neural net
@@ -1503,11 +1412,12 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     k.clear_session()
 
     input = Input(shape=(substeps,time_step,num_features,))
-    output_1 = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_1")
-    output_2 = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_2")
-    output_3 = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_3")
-    output_4 = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_4")
-    
+    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
+
     model = Model(input,[output_1,output_2,output_3,output_4])
     y_train_t1 = y_train[:,0]
     y_train_t2 = y_train[:,1]
@@ -1576,6 +1486,47 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # LSTM
+def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
+
+	#--------------
+	# LSTM block
+	#--------------
+	# ADD Recurrent layer
+	# Check if the user has entered at least one hidden layer sequence
+	if nLayersSequence > 0:
+	  # The user has entered two hidden layers
+	  if nLayersSequence > 1:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], True, input)
+
+	    for i in range(1,nLayersSequence-1):
+	      x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
+
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[-1], False, x)
+
+	  # The user has entered only one hidden layer
+	  else:
+	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
+	      
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
+	else:
+	  print("Please, insert at least one recurrent layer.")
+	  assert False
+
+	#--------------
+	# Dense block
+	#--------------
+	# ADD dense layer
+	if nLayers > 0:
+	  for i in range(0,nLayers):
+	    x = add_Dense_Layer(nNeurons[i], x)
+
+	  # Add dropout before the output layer
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
+
+	return x
+
 def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
 	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
 	experimentFolder,campaingsFull):
@@ -1614,7 +1565,8 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output = defineLSTM(input,nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output")
+    x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
 
@@ -1710,10 +1662,11 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output_1 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_1")
-    output_2 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_2")
-    output_3 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_3")
-    output_4 = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons, num_classes, "output_4")
+    x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)    
     
     model = Model(input,[output_1,output_2,output_3,output_4])
     y_train_t1 = y_train[:,0]
@@ -1779,6 +1732,45 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # CNN
+def defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
+
+    #--------------
+    # CONV1D block
+    #--------------
+    # Check if the user has entered at least one hidden layer conv1D
+    if nLayersConv1D > 0:
+        x = add_Conv1D_Layer(nNeuronsConv1D[0], input)
+
+        for i in range(1,nLayersConv1D):
+          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
+
+          # Add a dropout and a Pooling each 2 conv1D layer
+          if i % 2 == 1:
+            x = MaxPooling1D()(x)
+            if percentageDropout > 0.0:
+              x = Dropout(percentageDropout)(x)
+
+        # Apply flatten
+        x = Flatten()(x)
+
+    else:
+      print("Please, insert at least one conv1D layer.")
+      assert False
+
+    #--------------
+    # Dense block
+    #--------------
+    # ADD dense layer
+    if nLayers > 0:
+      for i in range(0,nLayers):
+        x = add_Dense_Layer(nNeurons[i], x)
+
+      # Add dropout before the output layer
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
+
+    return x
+
 def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
@@ -1829,7 +1821,8 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output")
+    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
 
@@ -1937,10 +1930,11 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    output_1 = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_1")
-    output_2 = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_2")
-    output_3 = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_3")
-    output_4 = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons, num_classes, "output_4")
+    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
     
     model = Model(input,[output_1,output_2,output_3,output_4])
     y_train_t1 = y_train[:,0]
