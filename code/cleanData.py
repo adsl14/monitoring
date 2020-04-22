@@ -4,7 +4,7 @@ import pandas as pd
 tables_folder = 'tables'
 nameExperimentsFolder = 'experiments'
 radar_folder = 'radar'
-nameExperiment = 'rice_t1'
+nameExperiment = 'rice_t2'
 indexes_sentinel1_v2 = []
 
 # Update indexes_sentinel1 in other var
@@ -80,9 +80,30 @@ def main():
     names = []
     for orbit in orbits:
       for sentinel in sentinels:
+
         names.append(sentinel+"_"+orbit)
         nameFile = kml[0]+"_"+names[-1]
-        dataFrame_s1 = pd.read_csv(os.path.join("dataEE",nameFile+".csv"))
+
+        # Try to read the sentinel_1 file
+        try:
+
+          dataFrame_s1 = pd.read_csv(os.path.join("dataEE",nameFile+".csv"))
+
+        # If there is one sentinel_1 file that is empty, we create a temporal file only with the headers
+        except:
+
+          indexes_sentinel1_temp = []
+          for index_sentinel1 in indexes_sentinel1:
+            indexes_sentinel1_temp.append(index_sentinel1 + "_" + names[-1])
+
+          # Create a temporal csv simulating the sentinel_2 without values. Only headers
+          dataFrame_s1 = pd.DataFrame(columns=[["date"] + indexes_sentinel1_temp])
+          dataFrame_s1.to_csv("temp.csv",index=False)
+          dataFrame_s1 = pd.read_csv("temp.csv")
+          dataFrame_s1['date'] = pd.to_datetime(dataFrame_s1['date'])
+          dataFrame_s1 = dataFrame_s1.set_index("date")
+          os.remove("temp.csv")
+
         observation_s1 = int(dataFrame_s1.shape[0]/areas)
 
         dataFrames_s1.append(dataFrame_s1)
@@ -106,21 +127,29 @@ def main():
       df_s1_aux = []
       for j in range(0,num_files_radar):
 
-        # Get the observations indexes
-        start = i*observations_s1[j]
-        end = start+observations_s1[j]
+        # If the file from sentinel_1 has observations, we will add each observation
+        if observations_s1[j] != 0:
 
-        # load dataframe
-        dataFrame_s1 = dataFrames_s1[j][["date"] + indexes_sentinel1].iloc[start:end]
+          # Get the observations indexes
+          start = i*observations_s1[j]
+          end = start+observations_s1[j]
 
-        # Rename all the indexes-sentinel-1 column
-        for index_sentinel1 in indexes_sentinel1:
-          dataFrame_s1 = dataFrame_s1.rename(columns={index_sentinel1 : index_sentinel1 + "_" + names[j]})
+          # load dataframe
+          dataFrame_s1 = dataFrames_s1[j][["date"] + indexes_sentinel1].iloc[start:end]
 
-        # Set the 'date' as the index of the dataframe
-        dataFrame_s1["date"] = [i.split('T')[0] for i in dataFrame_s1["date"].iloc[0:observations_s1[j]]]
-        dataFrame_s1["date"] = pd.to_datetime(dataFrame_s1['date'])
-        dataFrame_s1 = dataFrame_s1.set_index('date')
+          # Rename all the indexes-sentinel-1 column
+          for index_sentinel1 in indexes_sentinel1:
+            dataFrame_s1 = dataFrame_s1.rename(columns={index_sentinel1 : index_sentinel1 + "_" + names[j]})
+
+          # Set the 'date' as the index of the dataframe
+          dataFrame_s1["date"] = [i.split('T')[0] for i in dataFrame_s1["date"].iloc[0:observations_s1[j]]]
+          dataFrame_s1["date"] = pd.to_datetime(dataFrame_s1['date'])
+          dataFrame_s1 = dataFrame_s1.set_index('date')
+
+        # sentinel_1 file is empty. We will concatenate only the headers
+        else:
+
+          dataFrame_s1 = dataFrames_s1[j]
 
         # Save in the list, the dataframe
         df_s1_aux.append(dataFrame_s1)
