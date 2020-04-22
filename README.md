@@ -10,7 +10,8 @@ Machine learning network for monitoring areas.
 * Earth Engine API
 * NVIDIA CUDA Toolkit 10.0
 * NVIDIA cuDNN v7.6.5
-* Python 3.7
+* Python 3.7.6
+* Keras 2.3.1
 * Tensorflow 1.15.0
 
 ### 2. Install CUDA
@@ -27,14 +28,17 @@ Machine learning network for monitoring areas.
 
 #### 4.1 Install Anaconda: [Anaconda]:(https://www.anaconda.com/distribution/)
 
-### 5. Install Earth Engine API and Tensorflow
+### 5. Install Earth Engine API, Tensorflow and Keras.
 
 #### 5.1 Open the 'Anaconda prompt'
 
-#### 5.2 Write the following in the commands:
-1. Create the virtual environment: `conda create --name keras-gpu`
-2. Activate the virtual environment: `activate keras-gpu`
-3. Install pip: `conda install pip`
-4. Install earthengine: `pip install earthengine-api`
-5. Install tensorflow: `pip install tensorflow-gpu==1.15` or `pip install tensorflow-gpu==2.2.0rc3`
-6. Install Linux commands in Windows: `conda install m2-base`
+#### 5.2 Write the following commands:
+1. Create the virtual environment: `conda create --name keras-gpu python=3.7.6`
+2. Activate the virtual environment: `conda activate keras-gpu`
+3. Install earthengine: `pip install earthengine-api`
+4. Install keras: `pip install keras`
+5. Install tensorflow: `pip install tensorflow-gpu==1.15`
+6. Install pandas: `pip install pandas`
+7. Install sklearn: `pip install sklearn`
+8. Install matplotlib: `pip install matplotlib`
+9. Install Linux commands in Windows: `conda install m2-base`
