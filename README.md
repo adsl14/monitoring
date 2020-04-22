@@ -32,7 +32,9 @@ Machine learning network for monitoring areas.
 #### 5.1 Open the 'Anaconda prompt'
 
 #### 5.2 Write the following in the commands:
-1. Activate the virtual environment: `activate keras-gpu`
-2. Install earthengine: `pip install earthengine-api`
-2. Install tensorflow: `pip install tensorflow-gpu==1.15`
-3. Install Linux commands in Windows: `conda install m2-base`
+1. Create the virtual environment: `conda create --name keras-gpu`
+2. Activate the virtual environment: `activate keras-gpu`
+3. Install pip: `conda install pip`
+4. Install earthengine: `pip install earthengine-api`
+5. Install tensorflow: `pip install tensorflow-gpu==1.15` or `pip install tensorflow-gpu==2.2.0rc3`
+6. Install Linux commands in Windows: `conda install m2-base`
