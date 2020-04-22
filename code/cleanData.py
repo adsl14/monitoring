@@ -4,7 +4,7 @@ import pandas as pd
 tables_folder = 'tables'
 nameExperimentsFolder = 'experiments'
 radar_folder = 'radar'
-nameExperiment = 'rice'
+nameExperiment = 'rice_t1'
 indexes_sentinel1_v2 = []
 
 # Update indexes_sentinel1 in other var
@@ -46,16 +46,33 @@ def main():
   for kml in kmls:
 
     # SENTINEL-2
-    dataFrame_s2 = pd.read_csv(os.path.join("dataEE",kml[0]+"_s2.csv"))
+    try:
 
-    # Get the number of areas
-    areas = dataFrame_s2["regions"].loc[0]
+      # sentinel_2 file is not empty
+      dataFrame_s2 = pd.read_csv(os.path.join("dataEE",kml[0]+"_s2.csv"))
 
-    # Get number of observations (sentinel-2)
-    observations_s2 = int(dataFrame_s2.shape[0]/areas)
+      # Get the number of areas
+      areas = dataFrame_s2["regions"].loc[0]
 
-    # Get the dates
-    dates_s2 = [i.split('T')[0] for i in dataFrame_s2["date"].iloc[0:observations_s2]]  
+      # Get number of observations (sentinel-2)
+      observations_s2 = int(dataFrame_s2.shape[0]/areas)
+
+      # Get the dates
+      dates_s2 = [i.split('T')[0] for i in dataFrame_s2["date"].iloc[0:observations_s2]]
+
+      dataFrame_forNames = dataFrame_s2
+      observations_forNames = observations_s2
+
+    # We will use the sentinel-1 info to get the number of regions
+    except:
+
+      dataFrame_s1 = pd.read_csv(os.path.join("dataEE",kml[0]+"_"+sentinels[0]+"_"+orbits[0]+".csv"))
+
+      # Get the number of areas
+      areas = dataFrame_s1["regions"].loc[0]
+
+      dataFrame_forNames = dataFrame_s1
+      observations_forNames = int(dataFrame_s1.shape[0]/areas)
 
     # SENTINEL-1
     dataFrames_s1 = []
@@ -75,7 +92,7 @@ def main():
     for i in range(0,areas):
 
       # name area
-      name = dataFrame_s2["id"].iloc[i*observations_s2]
+      name = dataFrame_forNames["id"].iloc[i*observations_forNames]
 
       # Save data
       path = os.path.join(path_dataset,str(name)+".csv")
@@ -111,16 +128,30 @@ def main():
       # Concat all the dataframes of radar for one area
       df_s1 = df_s1_aux[0].join(df_s1_aux[1:], how='outer')
 
-      # S2 BLOCK
-      # get S2 data
-      start = i*observations_s2
-      end = start+observations_s2
-      df_s2 = dataFrame_s2[["date"] + indexes_sentinel2].iloc[start:end]
+      # Check if sentinel-2 file has values
+      try:
 
-      # set index to date
-      df_s2["date"] = [i.split('T')[0] for i in df_s2["date"].iloc[0:observations_s2]]
-      df_s2['date'] = pd.to_datetime(df_s2['date'])
-      df_s2 = df_s2.set_index('date')
+        # S2 BLOCK
+        # get S2 data
+        start = i*observations_s2
+        end = start+observations_s2
+        df_s2 = dataFrame_s2[["date"] + indexes_sentinel2].iloc[start:end]
+
+        # set index to date
+        df_s2["date"] = [i.split('T')[0] for i in df_s2["date"].iloc[0:observations_s2]]
+        df_s2['date'] = pd.to_datetime(df_s2['date'])
+        df_s2 = df_s2.set_index('date')
+
+      # We will concatenate only the headers
+      except:
+
+        # Create a temporal csv simulating the sentinel_2 without values. Only headers
+        df_s2 = pd.DataFrame(columns=[["date"] + indexes_sentinel2])
+        df_s2.to_csv("temp.csv",index=False)
+        df_s2 = pd.read_csv("temp.csv")
+        df_s2['date'] = pd.to_datetime(df_s2['date'])
+        df_s2 = df_s2.set_index("date")
+        os.remove("temp.csv")
 
       # concat and save dataframe
       df = df_s1.join(df_s2, how='outer')
