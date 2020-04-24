@@ -1,7 +1,7 @@
 # Monitoring
 -------------
 
-Machine learning network for monitoring areas.
+Deep learning network for monitoring areas.
 
 ## Install Earth Engine API and Tensorflow in Windows 10
 
