@@ -59,14 +59,17 @@ def searchUmbralInData(umbral,data_array):
 
 def main():
 
-	if not os.path.exists("plots"):
-		os.mkdir("plots")
+	nameFolder = "plots_" + sys.argv[1].split("\\")[-1]
+	pathDataset = os.path.join(sys.argv[1],"dataset")
 
-	files = os.listdir("./" + sys.argv[1])
+	if not os.path.exists(nameFolder):
+		os.mkdir(nameFolder)
+
+	files = os.listdir(pathDataset)
 	files = natural_sort(files)
 	num_files = len(files)
 
-	df = pd.read_csv(os.path.join(sys.argv[1],files[0]))
+	df = pd.read_csv(os.path.join(pathDataset,files[0]))
 	indexes = df.columns.values[1:]
 	indexes = natural_sort(indexes)
 	num_indexes = len(indexes)
@@ -91,8 +94,8 @@ def main():
 
 		name_file = files[i].split(".")[0]
 		name_output = name_file + ".png"
-		outputPath = os.path.join("plots",name_output)
-		df_o = pd.read_csv(os.path.join(sys.argv[1],files[i]))
+		outputPath = os.path.join(nameFolder,name_output)
+		df_o = pd.read_csv(os.path.join(pathDataset,files[i]))
 
 		if os.path.exists(outputPath):
 			print("%s plot already created" %(name_output))
