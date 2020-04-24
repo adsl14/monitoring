@@ -2,7 +2,7 @@
 <html>
 <head>
 
-	<title>Visor arroz 1.1</title>
+	<title>Visor arroz 1.1.1</title>
 	<meta charset="UTF-8">
 
 	<link rel="stylesheet" href="libs/leaflet/leaflet.css" />
@@ -24,6 +24,7 @@
 
 	<script>
 
+		var nameFolderImages = "plots_base64";
 		var layerColors = ["cyan", "orange"];
 		var layerNames = ["Cumple", "No cumple"];
 		var numLayersColors = layerColors.length;
@@ -211,7 +212,7 @@
 						html2canvas(document.getElementById("rectangle"), {
 								onrendered: function(canvas) {
 
-								getScript("plots_base64/"+halfname+".png.js", function()
+								getScript(nameFolderImages+"/"+halfname+".png.js", function()
 								{
 						    		// Create pdf
 									var rectangleImage = canvas.toDataURL('image/png');              
@@ -324,7 +325,7 @@
 			    		document.getElementById("textImage").innerHTML = fullname
 			    		// Get image var from javascript
 			    		//document.getElementById("plotImage").src = "./plots/" + this.feature.properties.ID + ".png"
-						getScript("plots_base64/"+halfname+".png.js", function()
+						getScript(nameFolderImages+"/"+halfname+".png.js", function()
 						{
 							document.getElementById("plotImage").src = imageTime
 						});
