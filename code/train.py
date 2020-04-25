@@ -633,10 +633,10 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
 	      #x_2 = BatchNormalization()(x_2)
 
-	      if i % 2 == 1:
-	      	x_2 = MaxPooling1D()(x_2)          	
+	      if i % 2 == 1:          	
 	      	if percentageDropout > 0.0:
-	      		x_2 = Dropout(percentageDropout)(x_2)	      
+	      		x_2 = Dropout(percentageDropout)(x_2)
+	      	x_2 = MaxPooling1D()(x_2)	      		      
 
 	    #x_2 = GlobalAveragePooling1D()(x_2)
 	    x_2 = Flatten()(x_2)
@@ -926,10 +926,10 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
           x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
           #x = BatchNormalization()(x)
 
-          if i % 2 == 1:
-          	x = MaxPooling1D()(x)          	
+          if i % 2 == 1:          	
           	if percentageDropout > 0.0:
           		x = Dropout(percentageDropout)(x)
+          	x = MaxPooling1D()(x)          		
 
         # Apply global average pooling and make the output only one dimension
         #x = GlobalAveragePooling1D()(x)
@@ -1198,9 +1198,9 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuro
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
-            x = TimeDistributed(MaxPooling1D())(x)
             if percentageDropout > 0.0:
               x = TimeDistributed(Dropout(percentageDropout))(x)
+            x = TimeDistributed(MaxPooling1D())(x)              
 
         # Apply flatten
         x = TimeDistributed(Flatten())(x)
@@ -1746,9 +1746,9 @@ def defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, 
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
-            x = MaxPooling1D()(x)
             if percentageDropout > 0.0:
               x = Dropout(percentageDropout)(x)
+            x = MaxPooling1D()(x)              
 
         # Apply flatten
         x = Flatten()(x)
