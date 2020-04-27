@@ -86,6 +86,7 @@ def defineArgParsers():
 	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
 	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test.")
 	parser.add_argument("--indexes_sentinel2",type=str, default='', help="indexes of optic to be used (Rice: ICEDEX, B11). Separator -> ','")
+	parser.add_argument("--kernelSize",type=int, default=3, help="kernel's size for convolutional 1D")
 
 	return parser.parse_args()
    
@@ -168,17 +169,17 @@ def add_CuDNNLSTM_Layer(number,return_sequence,data):
               bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
   return data
 
-def add_Conv1D_Layer(number,data):
+def add_Conv1D_Layer(number, kernelSize, data):
 
-  data = Conv1D(filters=number, kernel_size=3,data_format='channels_last', activation='relu', 
+  data = Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', 
               kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
               bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data)
   
   return data
 
-def add_Conv1DTimeDistributed_Layer(number,data):
+def add_Conv1DTimeDistributed_Layer(number, kernelSize, data):
 
-  data = TimeDistributed(Conv1D(filters=number, kernel_size=3,data_format='channels_last', activation='relu', 
+  data = TimeDistributed(Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', 
               kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
               bias_initializer=keras.initializers.glorot_uniform(seed=seed)))(data)
   
@@ -593,7 +594,7 @@ def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_
 
 # TRAIN MODELS FUNCTIONS
 # LSTM || CNN
-def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
+def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
 
 	#--------------
 	# LSTM block
@@ -626,11 +627,11 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	#--------------
 	# Check if the user has entered at least one hidden layer conv1D
 	if nLayersConv1D > 0:
-	    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], input)
+	    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], kernelSize, input)
 	    #x_2 = BatchNormalization()(x_2)
 
 	    for i in range(1,nLayersConv1D):
-	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], x_2)
+	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], kernelSize, x_2)
 	      #x_2 = BatchNormalization()(x_2)
 
 	      if i % 2 == 1:          	
@@ -664,7 +665,7 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 
 	return x
 
-def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
+def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
 	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -686,8 +687,8 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
 	# Experiment folder and name
-	nameModel = 'LSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+	nameModel = 'LSTM_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
 	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -715,7 +716,7 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		k.clear_session()
 
 		input = Input(shape=(time_step,num_features,))
-		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
 		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
 		model = Model(input,output)
@@ -774,7 +775,7 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		# Save figure
 		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8],
+def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
 	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -796,8 +797,8 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
 	# Experiment folder and name
-	nameModel = 'LSTM_p_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+	nameModel = 'LSTM_p_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
 	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -825,7 +826,7 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		k.clear_session()
 
 		input = Input(shape=(time_step,num_features,))
-		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+		x = defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
 		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
 		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
 		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
@@ -896,7 +897,7 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # LSTM + CNN
-def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
+def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
 
     #--------------
     # LSTM block
@@ -919,11 +920,11 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
     #--------------
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
-        x = add_Conv1D_Layer(nNeuronsConv1D[0], x)
+        x = add_Conv1D_Layer(nNeuronsConv1D[0], kernelSize, x)
         #x = BatchNormalization()(x)
 
         for i in range(1,nLayersConv1D):
-          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
+          x = add_Conv1D_Layer(nNeuronsConv1D[i], kernelSize, x)
           #x = BatchNormalization()(x)
 
           if i % 2 == 1:          	
@@ -953,7 +954,7 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
 
     return x
 
-def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
 	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -975,8 +976,8 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1004,7 +1005,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
     output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
@@ -1063,7 +1064,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
 	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -1085,8 +1086,8 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'LSTM_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'LSTM_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1114,7 +1115,7 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
     output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
     output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
     output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
@@ -1184,17 +1185,17 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # CNN + LSTM
-def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
+def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
 
     #--------------
     # CONV1D block
     #--------------
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
-        x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[0], input)
+        x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[0], kernelSize, input)
 
         for i in range(1,nLayersConv1D):
-          x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[i], x)
+          x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[i], kernelSize, x)
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
@@ -1248,7 +1249,7 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuro
 
     return x	
 
-def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -1270,8 +1271,8 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1299,7 +1300,7 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
     k.clear_session()
 
     input = Input(shape=(substeps,time_step,num_features,))
-    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
     output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
     model = Model(input,output)
@@ -1361,7 +1362,7 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -1383,8 +1384,8 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CNN_LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'CNN_LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1412,7 +1413,7 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
     k.clear_session()
 
     input = Input(shape=(substeps,time_step,num_features,))
-    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
     output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
     output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
     output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
@@ -1732,17 +1733,17 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
 # CNN
-def defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons):
+def defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
 
     #--------------
     # CONV1D block
     #--------------
     # Check if the user has entered at least one hidden layer conv1D
     if nLayersConv1D > 0:
-        x = add_Conv1D_Layer(nNeuronsConv1D[0], input)
+        x = add_Conv1D_Layer(nNeuronsConv1D[0], kernelSize, input)
 
         for i in range(1,nLayersConv1D):
-          x = add_Conv1D_Layer(nNeuronsConv1D[i], x)
+          x = add_Conv1D_Layer(nNeuronsConv1D[i], kernelSize, x)
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
@@ -1771,7 +1772,7 @@ def defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, 
 
     return x
 
-def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -1792,8 +1793,8 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CNN-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'CNN-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%s,cF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1821,7 +1822,7 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
     output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
     
     model = Model(input,output)
@@ -1880,7 +1881,7 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,nNeuronsConv1D=[128,256,128], nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
@@ -1901,8 +1902,8 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
   # Experiment folder and name
-  nameModel = 'CNN_4out-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,campaingsFull)
+  nameModel = 'CNN_4out-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%scF_%s' % (lr,batch_size,
+  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
   
   fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
   path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
@@ -1930,7 +1931,7 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
     k.clear_session()
 
     input = Input(shape=(time_step,num_features,))
-    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, percentageDropout, nLayers, nNeurons)
+    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
     output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
     output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
     output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
@@ -2131,14 +2132,14 @@ def main():
 			if num_labels_header == 1:
 
 				TrainLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
-					nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
+					nNeuronsConv1D=nNeuronsConv1D,kernelSize=args.kernelSize,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
 					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
 					nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
 				TrainLSTM_p_CNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
-					nNeuronsConv1D=nNeuronsConv1D,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
+					nNeuronsConv1D=nNeuronsConv1D,kernelSize=args.kernelSize,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
 					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
 					nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
@@ -2146,14 +2147,14 @@ def main():
 
 			if num_labels_header == 1:
 
-				TrainLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				TrainLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
-				TrainLSTM_CNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				TrainLSTM_CNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
@@ -2162,14 +2163,14 @@ def main():
 
 			if num_labels_header == 1:
 
-				TrainCNN_LSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				TrainCNN_LSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
-				TrainCNN_LSTM_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D,
+				TrainCNN_LSTM_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
@@ -2194,14 +2195,14 @@ def main():
 
 			if num_labels_header == 1:
 
-				TrainCNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsConv1D=nNeuronsConv1D,
+				TrainCNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
-				TrainCNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsConv1D=nNeuronsConv1D,
+				TrainCNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
 					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)				
