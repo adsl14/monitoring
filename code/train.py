@@ -123,7 +123,7 @@ def cleanExperimentFolder(folderNameExperimentPath):
       os.remove(model_path)
       print("Experiment %s removed" %(model_path))
   else:
-    print("Folder %s ignored" %(folderNameExperimentPath))
+    print("Folder %s ignored to clean" %(folderNameExperimentPath))
 
   # Get best model name
   return models[0]
@@ -592,6 +592,58 @@ def writeOptions(path_optionsFile, nameExperiment, indexes, interpolate, labels_
 		output_writer.writerow(['nameExperiment', 'indexes', 'interpolate', 'labels_header', 'labels', 'colors_label', 'campaingFull', 'tags_name', 'time_step', 'campaings'])
 		output_writer.writerow([nameExperiment, indexes, interpolate, labels_header, labels, colors_label, campaingsFull, tags_name, time_step, campaings])
 
+def writeAccuracyResults(network,nameExperiment,path_experiment,loss,accuracy,val_loss,val_accuracy):
+
+	path_results = os.path.join("experiments",nameExperiment,"results")
+
+	# Check if the folder 'results' exists. If not, we'll create it
+	if not os.path.exists(path_results):
+		os.mkdir(path_results)
+
+	fileOutputName = os.path.join(path_results,network+"_loss.csv")
+
+	# Check if the file 'network_loss.csv' exists
+	if os.path.exists(fileOutputName):
+		fileOutputNameAux = os.path.join(path_results,network+"_loss-temp.csv")
+
+		# Update original file using temporal
+		if os.path.exists(fileOutputNameAux):
+			print("Replacing 'temp' to 'original")
+			# Remove the original file
+			os.remove(fileOutputName)
+			# Rename the temporal file
+			os.rename(fileOutputNameAux,fileOutputName)
+
+		# Open original dataframe
+		dataframe_o = pd.read_csv(fileOutputName)
+
+		# Write the results in a temp file
+		with open(fileOutputNameAux,mode='w',newline='') as output_file:
+			output_writer = csv.writer(output_file, delimiter=',')
+			output_writer.writerow(["Name","Loss","Accuracy","Val_Loss","Val_Accuracy"])
+			output_writer.writerow([path_experiment,loss,str(round(accuracy*100,2)) + ' %',val_loss,str(round(val_accuracy*100,2)) + ' %'])
+
+		# Open temp dataframe
+		dataframe_temp = pd.read_csv(fileOutputNameAux)
+
+		dataframe_o = pd.concat([dataframe_o,dataframe_temp])
+
+		# Remove the original and temp file
+		os.remove(fileOutputName)
+		os.remove(fileOutputNameAux)
+
+		# Save the new file
+		dataframe_o.to_csv(fileOutputName,index=False)
+
+									
+	else:
+
+		with open(fileOutputName,mode='w',newline='') as output_file:
+
+			output_writer = csv.writer(output_file,delimiter=',')
+			output_writer.writerow(["Name","Loss","Accuracy","Val_Loss","Val_Accuracy"])
+			output_writer.writerow([path_experiment,loss,str(round(accuracy*100,2)) + ' %',val_loss,str(round(val_accuracy*100,2)) + ' %'])	
+
 # TRAIN MODELS FUNCTIONS
 # LSTM || CNN
 def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
@@ -667,7 +719,7 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 
 def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
-	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
 	# hyperparameters
 	#lr = 1e-02
@@ -682,6 +734,10 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 	nLayers = len(nNeurons)
 	nLayersSequence = len(nNeuronsSequence)
 	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0	
 
 	# date
 	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
@@ -755,8 +811,13 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 
 		plt.legend()
 
+		loss = min(np.array(history.history['loss']))
+		accuracy = max(np.array(history.history['categorical_accuracy']))
+		val_loss = min(np.array(history.history['val_loss']))
+		val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
 		print('|Precisión en Entrenamiento|')
-		print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+		print("Máximo: ", accuracy)
 		print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
 		print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
 		print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
@@ -764,7 +825,7 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		print("")
 
 		print('|Precisión en Validación|')
-		print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+		print("Máximo:", val_accuracy)
 		print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
 		print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
 		print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
@@ -774,6 +835,8 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 
 		# Save figure
 		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
 	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
@@ -956,7 +1019,7 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
 
 def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
-	nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+	network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -971,6 +1034,10 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
   nLayers = len(nNeurons)
   nLayersSequence = len(nNeuronsSequence)
   nLayersConv1D = len(nNeuronsConv1D)
+  loss = 0.0
+  accuracy = 0.0
+  val_loss = 0.0
+  val_accuracy = 0.0  
 
   # date
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
@@ -1044,8 +1111,13 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
     plt.legend()
 
+    loss = min(np.array(history.history['loss']))
+    accuracy = max(np.array(history.history['categorical_accuracy']))
+    val_loss = min(np.array(history.history['val_loss']))
+    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Máximo: ", accuracy)
     print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
     print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
     print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
@@ -1053,7 +1125,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Máximo:", val_accuracy)
     print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
     print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
     print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
@@ -1063,6 +1135,8 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
@@ -1251,7 +1325,7 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequ
 
 def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
-  nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+  network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -1266,6 +1340,10 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
   nLayers = len(nNeurons)
   nLayersSequence = len(nNeuronsSequence)
   nLayersConv1D = len(nNeuronsConv1D)
+  loss = 0.0
+  accuracy = 0.0
+  val_loss = 0.0
+  val_accuracy = 0.0
 
   # date
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
@@ -1342,8 +1420,13 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
 
     plt.legend()
 
+    loss = min(np.array(history.history['loss']))
+    accuracy = max(np.array(history.history['categorical_accuracy']))
+    val_loss = min(np.array(history.history['val_loss']))
+    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Máximo: ", accuracy)
     print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
     print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
     print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
@@ -1351,7 +1434,7 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Máximo:", val_accuracy)
     print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
     print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
     print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
@@ -1361,6 +1444,8 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
 
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
@@ -1529,11 +1614,15 @@ def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLay
 	return x
 
 def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
-	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment,
 	experimentFolder,campaingsFull):
 
   nLayers = len(nNeurons)
   nLayersSequence = len(nNeuronsSequence)
+  loss = 0.0
+  accuracy = 0.0
+  val_loss = 0.0
+  val_accuracy = 0.0  
 
   # date
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
@@ -1605,8 +1694,13 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
     plt.legend()
 
+    loss = min(np.array(history.history['loss']))
+    accuracy = max(np.array(history.history['categorical_accuracy']))
+    val_loss = min(np.array(history.history['val_loss']))
+    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Máximo: ", accuracy)
     print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
     print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
     print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
@@ -1614,7 +1708,7 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Máximo:", val_accuracy)
     print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
     print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
     print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
@@ -1624,6 +1718,8 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
 	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, nameExperimentsFolder, nameExperiment,
@@ -1774,7 +1870,7 @@ def defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropou
 
 def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
-  nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+  network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
   # hyperparameters
   #lr = 1e-02
@@ -1788,6 +1884,10 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 
   nLayers = len(nNeurons)
   nLayersConv1D = len(nNeuronsConv1D)
+  loss = 0.0
+  accuracy = 0.0
+  val_loss = 0.0
+  val_accuracy = 0.0  
 
   # date
   date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
@@ -1861,8 +1961,13 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 
     plt.legend()
 
+    loss = min(np.array(history.history['loss']))
+    accuracy = max(np.array(history.history['categorical_accuracy']))
+    val_loss = min(np.array(history.history['val_loss']))
+    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", max(np.array(history.history['categorical_accuracy'])))
+    print("Máximo: ", accuracy)
     print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
     print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
     print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
@@ -1870,7 +1975,7 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", max(np.array(history.history['val_categorical_accuracy'])))
+    print("Máximo:", val_accuracy)
     print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
     print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
     print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
@@ -1880,6 +1985,8 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 
     # Save figure
     plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+    writeAccuracyResults(network,nameExperiment,path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
@@ -2134,7 +2241,7 @@ def main():
 				TrainLSTM_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
 					nNeuronsConv1D=nNeuronsConv1D,kernelSize=args.kernelSize,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
 					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
-					nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+					network=args.network,nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
@@ -2150,7 +2257,7 @@ def main():
 				TrainLSTM_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
-					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
@@ -2166,7 +2273,7 @@ def main():
 				TrainCNN_LSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
-					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+					network=args.network, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
@@ -2182,7 +2289,7 @@ def main():
 				TrainLSTM(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
 					patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
 					y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
-					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
@@ -2198,7 +2305,7 @@ def main():
 				TrainCNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
-					nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
 			elif num_labels_header == 4:
 
