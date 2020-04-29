@@ -811,24 +811,24 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 
 		plt.legend()
 
-		loss = min(np.array(history.history['loss']))
-		accuracy = max(np.array(history.history['categorical_accuracy']))
-		val_loss = min(np.array(history.history['val_loss']))
-		val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
 		print('|Precisión en Entrenamiento|')
-		print("Máximo: ", accuracy)
-		print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-		print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-		print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
 		print("")
 
 		print('|Precisión en Validación|')
-		print("Máximo:", val_accuracy)
-		print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-		print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-		print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
 
 		# Clean the folder where the models are saved
 		best_model_name = cleanExperimentFolder(path_experiment)
@@ -1111,24 +1111,24 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
     plt.legend()
 
-    loss = min(np.array(history.history['loss']))
-    accuracy = max(np.array(history.history['categorical_accuracy']))
-    val_loss = min(np.array(history.history['val_loss']))
-    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+    val_loss_index = np.array(history.history['val_loss']).argmin()
+
+    loss = np.array(history.history['loss'])[val_loss_index]
+    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+    val_loss = np.array(history.history['val_loss'])[val_loss_index]
+    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", accuracy)
-    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", val_accuracy)
-    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+    print("")
 
     # Clean the folder where the models are saved
     best_model_name = cleanExperimentFolder(path_experiment)
@@ -1420,24 +1420,24 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
 
     plt.legend()
 
-    loss = min(np.array(history.history['loss']))
-    accuracy = max(np.array(history.history['categorical_accuracy']))
-    val_loss = min(np.array(history.history['val_loss']))
-    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+    val_loss_index = np.array(history.history['val_loss']).argmin()
+
+    loss = np.array(history.history['loss'])[val_loss_index]
+    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+    val_loss = np.array(history.history['val_loss'])[val_loss_index]
+    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", accuracy)
-    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", val_accuracy)
-    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+    print("")
 
     # Clean the folder where the models are saved
     best_model_name = cleanExperimentFolder(path_experiment)
@@ -1694,24 +1694,24 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
     plt.legend()
 
-    loss = min(np.array(history.history['loss']))
-    accuracy = max(np.array(history.history['categorical_accuracy']))
-    val_loss = min(np.array(history.history['val_loss']))
-    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+    val_loss_index = np.array(history.history['val_loss']).argmin()
+
+    loss = np.array(history.history['loss'])[val_loss_index]
+    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+    val_loss = np.array(history.history['val_loss'])[val_loss_index]
+    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", accuracy)
-    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", val_accuracy)
-    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+    print("")
 
     # Clean the folder where the models are saved
     best_model_name = cleanExperimentFolder(path_experiment)
@@ -1961,24 +1961,25 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 
     plt.legend()
 
-    loss = min(np.array(history.history['loss']))
-    accuracy = max(np.array(history.history['categorical_accuracy']))
-    val_loss = min(np.array(history.history['val_loss']))
-    val_accuracy = max(np.array(history.history['val_categorical_accuracy']))
+
+    val_loss_index = np.array(history.history['val_loss']).argmin()
+
+    loss = np.array(history.history['loss'])[val_loss_index]
+    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+    val_loss = np.array(history.history['val_loss'])[val_loss_index]
+    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
     print('|Precisión en Entrenamiento|')
-    print("Máximo: ", accuracy)
-    print("Mínimo: ", min(np.array(history.history['categorical_accuracy'])))
-    print("Media: ", np.mean(np.array(history.history['categorical_accuracy'])))
-    print("Desv. tipica: ", np.std(np.array(history.history['categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
     print("")
 
     print('|Precisión en Validación|')
-    print("Máximo:", val_accuracy)
-    print("Mínimo:", min(np.array(history.history['val_categorical_accuracy'])))
-    print("Media:", np.mean(np.array(history.history['val_categorical_accuracy'])))
-    print("Desv. tipica:", np.std(np.array(history.history['val_categorical_accuracy'])))
+    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+    print("")
 
     # Clean the folder where the models are saved
     best_model_name = cleanExperimentFolder(path_experiment)
