@@ -51,18 +51,15 @@ def show_confussionMatrix(matrix,labels):
 		for j in range(0,cols):
 			print("%s | %s | %d" % (labels[i],labels[j],matrix[i,j]))
 
-def WriteResultsModel(best_model_path,output_writer, x_test, y_test, steps, features, labels, labels_header):
+def WriteResultsModel(model,best_model_path,output_writer, x_test, y_test, steps, features, labels, labels_header):
   
 	start_score_index = 0
 	loss_outputs = list()
 	accuracy_outputs = list()
 	num_outputs = len(labels_header)
 
-	# Load the best model for that experiment
-	model = load_model(best_model_path)
-
 	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN_LSTM" == best_model_path.split("\\")[-2][0:8]:
+	if "CNN_LSTM" == best_model_path.split("\\")[-1][0:8]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 
 	# Get the predictions
@@ -242,9 +239,8 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 
 	return x_data, y_data, tagDataFrameName, total_test
 
-def LoadModel(model_parameters, modelExperiment, nameExperiment='activity'):
+def LoadModel(modelPath):
 
-	modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, model_parameters)
 	models = os.listdir(modelPath)
 	models.sort(key=natural_keys,reverse=True)
 	best_model_name = models[2]
@@ -254,7 +250,7 @@ def LoadModel(model_parameters, modelExperiment, nameExperiment='activity'):
 
 	print('Model %s loaded' % (modelPath))
 
-	return model, modelPath, best_model_name
+	return model, best_model_name
 
 def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_header, steps, features, num_classes, tagDataFrameName, output_path):
   
@@ -461,8 +457,8 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 						actual_modelsName = actual_modelsName + 1
 						print("%d/%d" % (actual_modelsName,total_modelsName))
 
-						# Load model
-						model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
+						# Search model in file
+						modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, modelName)
 						exists, score = searchModelInFile(modelPath,input_reader)
 
 						# The model has already tested
@@ -472,7 +468,9 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 						# Test the new model
 						else:
 							print("Loading %s" %(modelPath))
-							WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+							model, best_model_name = LoadModel(modelPath)
+							WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+							k.clear_session()
 
 		# Remove the original file
 		os.remove(fileOutputName)
@@ -525,8 +523,10 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 					print("%d/%d" % (actual_modelsName,total_modelsName))
 
 					# Load model
-					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
-					WriteResultsModel(modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+					modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, modelName)
+					model, best_model_name = LoadModel(modelPath)
+					WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+					k.clear_session()
 
 		# Closing the file
 		output_file.close()
@@ -543,7 +543,8 @@ def main():
 
 		# Load model
 		tempPath = args.networkPath.split("\\")[0:5]
-		model, modelPath, best_model_name = LoadModel(tempPath[4],tempPath[3],tempPath[1])
+		modelPath = os.path.join("experiments", tempPath[1], "models", tempPath[3], tempPath[4])
+		model, best_model_name = LoadModel(modelPath)
 
 		# Load scaler (normalize data)
 		scalerPath = os.path.join(tempPath[0],tempPath[1],"scalers",tempPath[3]+"-scaler.pkl")
