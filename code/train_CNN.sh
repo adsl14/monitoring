@@ -8,7 +8,7 @@ labels="cumple,no_cumple"
 colors_label="cyan,orange"
 campaings="rice_t1_A,B_DESC,ASC_2017-11-15_2017-12-01|rice_t1_A,B_DESC,ASC_2018-11-15_2018-12-01"
 tags_name="tags_balanced.csv"
-network="LSTM_p_CNN"
+network="CNN"
 percentageGPU=0.225
 
 tam_sentinels=${#sentinels[*]}
