@@ -427,6 +427,9 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 				output_writer.writerow(["Name","Loss","Accuracy"])
 				input_reader = csv.reader(input_file)
 
+				total_experiments = len(modelsExperiments)
+				actual_experiments = 0
+
 				# Read each modelExperiment from each experiment in 'models' folder
 				for modelExperiment in modelsExperiments:
 
@@ -445,8 +448,18 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 					# Get each model name from one experiment name
 					modelsName = os.listdir(os.path.join("experiments",nameExperiment,"models",modelExperiment))
 
+					actual_experiments = actual_experiments + 1
+					total_modelsName = len(modelsName)
+					actual_modelsName = 0
+
 					# Load each model from one experiment
 					for modelName in modelsName:
+
+						print("PROGRESS")
+						print("%d/%d" % (actual_experiments,total_experiments))
+
+						actual_modelsName = actual_modelsName + 1
+						print("%d/%d" % (actual_modelsName,total_modelsName))
 
 						# Load model
 						model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
@@ -477,6 +490,9 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 			output_writer = csv.writer(output_file,delimiter=',')
 			output_writer.writerow(["Name","Loss","Accuracy"])
 
+			total_experiments = len(modelsExperiments)
+			actual_experiments = 0
+
 			# Read each modelExperiment from each experiment in 'models' folder
 			for modelExperiment in modelsExperiments:
 
@@ -495,8 +511,18 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 				# Get each model name from one experiment name
 				modelsName = os.listdir(os.path.join("experiments",nameExperiment,"models",modelExperiment))
 
+				actual_experiments = actual_experiments + 1
+				total_modelsName = len(modelsName)
+				actual_modelsName = 0
+
 				# Load each model from one experiment
 				for modelName in modelsName:
+
+					print("PROGRESS")
+					print("%d/%d" % (actual_experiments,total_experiments))
+
+					actual_modelsName = actual_modelsName + 1
+					print("%d/%d" % (actual_modelsName,total_modelsName))
 
 					# Load model
 					model, modelPath, best_model_name = LoadModel(modelName,modelExperiment,nameExperiment)
