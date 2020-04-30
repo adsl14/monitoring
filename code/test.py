@@ -243,12 +243,18 @@ def LoadModel(modelPath):
 
 	models = os.listdir(modelPath)
 	models.sort(key=natural_keys,reverse=True)
-	best_model_name = models[2]
-	modelPath = os.path.join(modelPath,best_model_name)
 
-	model = load_model(modelPath)
+	# Check if the model folder has 3 files (logs, image and model)
+	if len(models) == 3:
+		best_model_name = models[2]
+		modelPath = os.path.join(modelPath,best_model_name)
 
-	print('Model %s loaded' % (modelPath))
+		model = load_model(modelPath)
+
+		print('Model %s loaded' % (modelPath))
+	else:
+		model = None
+		best_model_name = None
 
 	return model, best_model_name
 
@@ -469,7 +475,12 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 						else:
 							print("Loading %s" %(modelPath))
 							model, best_model_name = LoadModel(modelPath)
-							WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+							# Check if there is loaded one model
+							if model is not None:
+								WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+							else:
+								print("There is no model in %s" % (modelPath))
+								continue
 							k.clear_session()
 
 		# Remove the original file
@@ -525,7 +536,13 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 					# Load model
 					modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, modelName)
 					model, best_model_name = LoadModel(modelPath)
-					WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+
+					# Check if there is loaded one model
+					if model is not None:
+						WriteResultsModel(model,modelPath,output_writer,x_data,y_data,time_step,num_features,labels,labels_header)
+					else:
+						print("There is no model in %s" % (modelPath))
+						continue
 					k.clear_session()
 
 		# Closing the file
