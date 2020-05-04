@@ -1,14 +1,14 @@
 #!/bin/bash
 
-nameExperiment="rice_t4_balanced_inversed"
+nameExperiment="rice_t1_balanced"
 sentinels=("A" "B" "A,B")
 orbits=("ASC" "DESC" "DESC,ASC")
 indexes_sentinel1=("VH_Sum_VV")
 labels="cumple,no_cumple"
 colors_label="cyan,orange"
-campaings="rice_t4_A,B_DESC,ASC_2019-01-01_2019-01-15|rice_t4_A,B_DESC,ASC_2018-01-01_2018-01-15"
+campaings="rice_t1_A,B_DESC,ASC_2017-11-15_2017-12-01|rice_t1_A,B_DESC,ASC_2018-11-15_2018-12-01"
 tags_name="tags_balanced.csv"
-percentageGPU=0.14
+percentageGPU=0.07
 
 tam_sentinels=${#sentinels[*]}
 tam_orbits=${#orbits[*]}
@@ -21,9 +21,9 @@ dropouts=(0.0 0.4)
 patiences=(40)
 patiences_reduce_lr=(7)
 nNeuronsSequence=("128")
-nNeuronsConv1D=("64,64")
-nNeurons=("128" "")
-kernelSize=(1)
+nNeuronsConv1D=("64,64" "32,32,16,16")
+nNeurons=("64,32,8" "")
+kernelSize=(1 2)
 
 tam_lrs=${#lrs[*]}
 tam_batch_sizes=${#batch_sizes[*]}

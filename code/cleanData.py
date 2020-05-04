@@ -1,10 +1,13 @@
+# You have to put the folder 'dataEE' from drive to the path where 
+# this code 'cleanData.py' is located
+
 from downloadData_EE import time, os, time_convert, start_date, end_date, indexes_sentinel1, indexes_sentinel2, sentinels, orbits, nameUser, kmls
 import pandas as pd
 
 tables_folder = 'tables'
 nameExperimentsFolder = 'experiments'
 radar_folder = 'radar'
-nameExperiment = 'rice_t2'
+nameExperiment = 'rice_junta'
 indexes_sentinel1_v2 = []
 
 # Update indexes_sentinel1 in other var
