@@ -1,14 +1,16 @@
-# Run this code. Then, download the folder 'dataEE' from your drive and move it
-# to the path where this code 'downloadData_EE.py' is located. Don't change any
-# value from this code until you run "cleanData.py" and save the data in "tables"
+# Change the first 7 values from this code. Then, run it. When it finishes, download
+# the folder 'dataEE' from your drive and move it to the path where
+# this code 'downloadData_EE.py' is located. Don't change any
+# value from this code until you run "cleanData.py" and save the data in "tables" 
 # folder.
 
 import ee
 import os
 import time
 
-start_date = '2019-09-01' # PagoBásico 09-01, Rice 11-01
-end_date = '2020-05-04' # PagoBásico 08-31, Rice 02-01
+# Change this values if you want to download data from other dates or indexes
+start_date = '2016-09-01' # PagoBásico 09-01, Rice 11-01
+end_date = '2017-08-31' # PagoBásico 08-31, Rice 02-01
 sentinels = ["A","B"] # A, B or AB
 orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
 indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
@@ -19,13 +21,16 @@ buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 
 # USER
 nameUser = "Dani" # "Dani", "soysusanacanton"
 
+# Select the shape you want to use. You have to upload your shapes to Earth Engine
+# before using this code.
+
 # ACTIVITY
 #kmls = [["Trigo", "users/"+nameUser+"/"+"Trigo"],["Avena", "users/"+nameUser+"/"+"Avena"],["Girasol", "users/"+nameUser+"/"+"Girasol"],["Barbecho tradicional", "users/"+nameUser+"/"+"Barbecho_tradicional"],["Barbecho sin produccion", "users/"+nameUser+"/"+"Barbecho_sin_produccion"]]
 
 # WATER
-#kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
+kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
 #kmls = [["ARROZ_18", "users/"+nameUser+"/"+"ARROZ_2018"]]
-kmls = [["ARROZ_19", "users/"+nameUser+"/"+"ARROZ_2019"]]
+#kmls = [["ARROZ_19", "users/"+nameUser+"/"+"ARROZ_2019"]]
 #kmls = [["Arroz_PDR_2019_revisar_30N", "users/"+nameUser+"/"+"Arroz_PDR_2019_revisar_30N"]]
 
 def time_convert(sec):
