@@ -1,3 +1,11 @@
+# --- IMPORTANT ---
+# This code needs two argument to pass.
+# first argument: Path where the regions are saved.
+# second argument: Umbral where the line will be drawed in the time series. (B11=1450)
+# Example: python tables\radar\rice_A,B_DESC,ASC_2016-11-01_2017-02-01 1450
+
+
+
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
