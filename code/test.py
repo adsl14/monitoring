@@ -347,7 +347,7 @@ def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_hea
 
 		output_writer.writerow(['Area'] + real_tag_name + predicted_tag_name)
 		for i in range(0,num_regions):
-			output_writer.writerow([tagDataFrameName[i].split("/")[-1]] + list(labels[y_test[:,i].argmax(axis=1)]) + list(labels[predictions[:,i].argmax(axis=1)]))
+			output_writer.writerow([tagDataFrameName.iloc[i]] + list(labels[y_test[:,i].argmax(axis=1)]) + list(labels[predictions[:,i].argmax(axis=1)]))
 
 		# Closing the file
 		output_file.close()
