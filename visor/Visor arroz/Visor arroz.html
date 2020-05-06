@@ -212,7 +212,7 @@
 						html2canvas(document.getElementById("rectangle"), {
 								onrendered: function(canvas) {
 
-								getScript(nameFolderImages+"/"+halfname+".png.js", function()
+								getScript("images/"+nameFolderImages+"/"+halfname+".png.js", function()
 								{
 						    		// Create pdf
 									var rectangleImage = canvas.toDataURL('image/png');              
@@ -325,7 +325,7 @@
 			    		document.getElementById("textImage").innerHTML = fullname
 			    		// Get image var from javascript
 			    		//document.getElementById("plotImage").src = "./plots/" + this.feature.properties.ID + ".png"
-						getScript(nameFolderImages+"/"+halfname+".png.js", function()
+						getScript("images/"+nameFolderImages+"/"+halfname+".png.js", function()
 						{
 							document.getElementById("plotImage").src = imageTime
 						});
