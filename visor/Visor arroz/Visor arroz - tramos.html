@@ -24,7 +24,7 @@
 
 	<script>
 
-		var nameFolderImages = "plots_juntaShapes";
+		var nameFolderImages = "plots_juntaShapes_tramos";
 		var layerColors = ["cyan", "orange"];
 		var layerNames = ["Cumple", "No cumple"];
 		var numLayersColors = layerColors.length;
@@ -112,15 +112,65 @@
 				html2canvas(document.getElementById("rectangle"), {
 						onrendered: function(canvas) {
 
-						var rectangleImage = canvas.toDataURL('image/png');              
-						var doc = new jsPDF('p', 'mm', 'a4');
-						doc.addImage(document.getElementById("plotImage").src,'PNG',0,-28,140,350)
-						doc.addImage(rectangleImage, 'PNG', 42.4, 14.0, 17.0, 269.5);
-						doc.addImage(mapImage,'PNG',135.5,13.2,70,50);
-						doc.addImage(andalucia,'PNG',3,3,10,10);
-						doc.setFontSize(11);
-						doc.text(fullname,70,8.5)
-						doc.save(fullname+'.pdf');    
+							var rectangleImage = canvas.toDataURL('image/png');
+
+						html2canvas(document.getElementById("rectangle2"), {
+							onrendered: function(canvas) {
+
+								var rectangle2Image = canvas.toDataURL('image/png');
+
+								html2canvas(document.getElementById("rectangle3"), {
+									onrendered: function(canvas) {
+
+										var rectangle3Image = canvas.toDataURL('image/png');
+
+										html2canvas(document.getElementById("rectangle4"), {
+											onrendered: function(canvas) {
+
+												var rectangle4Image = canvas.toDataURL('image/png');
+
+												html2canvas(document.getElementById("black_line"), {
+													onrendered: function(canvas) {
+
+														var black_lineImage = canvas.toDataURL('image/png');
+
+														html2canvas(document.getElementById("black_line2"), {
+															onrendered: function(canvas) {
+
+																var black_line2Image = canvas.toDataURL('image/png');
+
+
+																html2canvas(document.getElementById("black_line3"), {
+																	onrendered: function(canvas) {
+
+																		var black_line3Image = canvas.toDataURL('image/png');
+
+																		var doc = new jsPDF('p', 'mm', 'a4');
+																		doc.addImage(document.getElementById("plotImage").src,'PNG',0,-28,140,350)
+																		doc.addImage(rectangleImage, 'PNG', 21.61, 14.0, 26.15, 269.5);
+																		doc.addImage(rectangle2Image, 'PNG', 47.76, 14.0, 26.15, 269.5);
+																		doc.addImage(rectangle3Image, 'PNG', 73.91, 14.0, 29.15, 269.5);
+																		doc.addImage(rectangle4Image, 'PNG', 103.06, 14.0, 19.15, 269.5);
+																		doc.addImage(black_lineImage, 'PNG', 47.76, 14.0, 0.3, 269.5);
+																		doc.addImage(black_line2Image, 'PNG', 73.91, 14.0, 0.3, 269.5);
+																		doc.addImage(black_line3Image, 'PNG', 103.06, 14.0, 0.3, 269.5);
+																		doc.addImage(mapImage,'PNG',135.5,13.2,70,50);
+																		doc.addImage(andalucia,'PNG',3,3,10,10);
+																		doc.setFontSize(11);
+																		doc.text(fullname,70,8.5)
+																		doc.save(fullname+'.pdf');																
+																	}
+																});													
+															}
+														});											
+													}
+												});			
+											}
+										});									
+									}
+								});							
+							}
+						});   
 					}
 				});
 
@@ -177,7 +227,7 @@
 			}
 
 			// Reset pointed selection to class color
-			pointer_selectedRegion.setStyle({color: layerColors[layers[i].feature.properties.CLASS], fillOpacity: 0.1});
+			pointer_selectedRegion.setStyle({color: "black", fillOpacity: 0.1});
 			// Save in a aux var the original image
 			var imagePointer = document.getElementById("plotImage").src
 
@@ -199,7 +249,10 @@
 		    		halfname = layers[i].feature.properties.CLAVE_REC + "-" + layers[i].feature.properties.ID
 					fullname = layers[i].feature.properties.NUM_EXPEDI + "-" + halfname
 					document.getElementById("textImage").innerHTML = fullname
-		    		document.getElementById("plotImage").src = imageTime
+					getScript("images/"+nameFolderImages+"/"+halfname+".png.js", function()
+					{
+		    			document.getElementById("plotImage").src = imageTime
+		    		});
 		    		document.getElementById("rectangle").style.background = layerColors[layers[i].feature.properties.CLASS];
 		    		document.getElementById("rectangle2").style.background = layerColors[layers[i].feature.properties.CLASS2];
 		    		document.getElementById("rectangle3").style.background = layerColors[layers[i].feature.properties.CLASS3];
@@ -215,27 +268,74 @@
 						html2canvas(document.getElementById("rectangle"), {
 								onrendered: function(canvas) {
 
-								getScript("images/"+nameFolderImages+"/"+halfname+".png.js", function()
-								{
-						    		// Create pdf
-									var rectangleImage = canvas.toDataURL('image/png');              
-									var doc = new jsPDF('p', 'mm', 'a4');
-									doc.addImage(imageTime,'PNG',0,-28,140,350)
-									doc.addImage(rectangleImage, 'PNG', 42.4, 14.0, 17.0, 269.5);
-									doc.addImage(mapImage,'PNG',135.5,13.2,70,50);
-									doc.addImage(andalucia,'PNG',3,3,10,10);
-									doc.setFontSize(11);
-									doc.text(fullname,70,8.5)
-									doc.save(fullname+'.pdf');
-								});     
+									var rectangleImage = canvas.toDataURL('image/png');
+
+								html2canvas(document.getElementById("rectangle2"), {
+									onrendered: function(canvas) {
+
+										var rectangle2Image = canvas.toDataURL('image/png');
+
+										html2canvas(document.getElementById("rectangle3"), {
+											onrendered: function(canvas) {
+
+												var rectangle3Image = canvas.toDataURL('image/png');
+
+												html2canvas(document.getElementById("rectangle4"), {
+													onrendered: function(canvas) {
+
+														var rectangle4Image = canvas.toDataURL('image/png');
+
+														html2canvas(document.getElementById("black_line"), {
+															onrendered: function(canvas) {
+
+																var black_lineImage = canvas.toDataURL('image/png');
+
+																html2canvas(document.getElementById("black_line2"), {
+																	onrendered: function(canvas) {
+
+																		var black_line2Image = canvas.toDataURL('image/png');
+
+
+																		html2canvas(document.getElementById("black_line3"), {
+																			onrendered: function(canvas) {
+
+																				var black_line3Image = canvas.toDataURL('image/png');
+
+																		    	// Create pdf
+																				var doc = new jsPDF('p', 'mm', 'a4');
+																				doc.addImage(imageTime,'PNG',0,-28,140,350)
+																				doc.addImage(rectangleImage, 'PNG', 21.61, 14.0, 26.15, 269.5);
+																				doc.addImage(rectangle2Image, 'PNG', 47.76, 14.0, 26.15, 269.5);
+																				doc.addImage(rectangle3Image, 'PNG', 73.91, 14.0, 29.15, 269.5);
+																				doc.addImage(rectangle4Image, 'PNG', 103.06, 14.0, 19.15, 269.5);
+																				doc.addImage(black_lineImage, 'PNG', 47.76, 14.0, 0.3, 269.5);
+																				doc.addImage(black_line2Image, 'PNG', 73.91, 14.0, 0.3, 269.5);
+																				doc.addImage(black_line3Image, 'PNG', 103.06, 14.0, 0.3, 269.5);
+																				doc.addImage(mapImage,'PNG',135.5,13.2,70,50);
+																				doc.addImage(andalucia,'PNG',3,3,10,10);
+																				doc.setFontSize(11);
+																				doc.text(fullname,70,8.5)
+																				doc.save(fullname+'.pdf');					
+																			}
+																		});													
+																	}
+																});											
+															}
+														});			
+													}
+												});									
+											}
+										});							
+									}
+								});   
 							}
-						});
+						});						
 
 					})
 
 					// We have to stop the code here in order to load the image correctly
 					await new Promise(r => setTimeout(r, 3000));
-					layers[i].setStyle({color: layerColors[layers[i].feature.properties.CLASS], fillOpacity: 0.1});
+					layers[i].setStyle({color: "black", fillOpacity: 0.1});
 				}
 			}
 
@@ -450,42 +550,75 @@
 		.rectangle_color{
 
 			position: absolute;
-			width: 18px;
-			height: 1200px; 
-			margin-left: 202px;
+			width: 120px;
+			height: 1202px; 
+			margin-left: 103px;
 			margin-top: -1px; 
 			opacity: 0.3;
 		}
+
+		.rectangle_black_line{
+
+			position: absolute;
+			background: black;
+			width: 2px;
+			height: 1202px; 
+			margin-left: 223px;
+			margin-top: -1px; 
+			opacity: 0.7;
+		}		
 
 		.rectangle2_color{
 
 			position: absolute;
-			width: 18px;
-			height: 1200px; 
-			margin-left: 220px;
+			width: 120px;
+			height: 1202px; 
+			margin-left: 223px;
 			margin-top: -1px; 
 			opacity: 0.3;
 		}
+
+		.rectangle2_black_line{
+
+			position: absolute;
+			background: black;
+			width: 2px;
+			height: 1202px; 
+			margin-left: 343px;
+			margin-top: -1px; 
+			opacity: 0.7;
+		}		
 
 		.rectangle3_color{
 
 			position: absolute;
-			width: 18px;
-			height: 1200px; 
-			margin-left: 238px;
+			width: 137px;
+			height: 1202px; 
+			margin-left: 343px;
 			margin-top: -1px; 
 			opacity: 0.3;
 		}
 
+		.rectangle3_black_line{
+
+			position: absolute;
+			background: black;
+			width: 2px;
+			height: 1202px; 
+			margin-left: 480px;
+			margin-top: -1px; 
+			opacity: 0.7;
+		}		
+
 		.rectangle4_color{
 
 			position: absolute;
-			width: 18px;
-			height: 1200px; 
-			margin-left: 256px;
+			width: 85px;
+			height: 1202px; 
+			margin-left: 480px;
 			margin-top: -1px; 
 			opacity: 0.3;
-		}		
+		}	
 
 		#border_legend {
 
@@ -565,6 +698,9 @@
 		<div id="rectangle2" class="rectangle2_color"></div>
 		<div id="rectangle3" class="rectangle3_color"></div>
 		<div id="rectangle4" class="rectangle4_color"></div>
+		<div id="black_line" class="rectangle_black_line"></div>
+		<div id="black_line2" class="rectangle2_black_line"></div>
+		<div id="black_line3" class="rectangle3_black_line"></div>
 	</div>
 
 	<!-- Legend -->

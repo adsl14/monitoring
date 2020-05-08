@@ -199,7 +199,10 @@
 		    		halfname = layers[i].feature.properties.CLAVE_REC + "-" + layers[i].feature.properties.ID
 					fullname = layers[i].feature.properties.NUM_EXPEDI + "-" + halfname
 					document.getElementById("textImage").innerHTML = fullname
-		    		document.getElementById("plotImage").src = imageTime
+					getScript("images/"+nameFolderImages+"/"+halfname+".png.js", function()
+					{
+		    			document.getElementById("plotImage").src = imageTime
+		    		});
 		    		document.getElementById("rectangle").style.background = layerColors[layers[i].feature.properties.CLASS];
 					layers[i].setStyle({color: "red", fillOpacity: 0.1});
 					
