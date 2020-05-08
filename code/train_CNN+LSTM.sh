@@ -1,5 +1,5 @@
 #!/bin/bash
-source models_parameters.sh
+source ./models_parameters.sh
 network="CNN+LSTM"
 
 for ((nsec=0; nsec<tam_nNeuronsSequence; ++nsec))
