@@ -149,9 +149,14 @@ def loadData(campaingPath, networkPath, indexes, labels, interpolate, time_step,
 		# Change time_step
 		seq = areadf.values
 		len_seq = len(seq)
+
+		# Check if we have to extend or remove some elements at the end of the sequence
 		n = time_step - len_seq
-		to_concat = np.repeat(seq[-1], n).reshape(num_features, n).transpose()
-		seq = np.concatenate([seq, to_concat])
+		if time_step >= len_seq:
+			to_concat = np.repeat(seq[-1], n).reshape(num_features, n).transpose()
+			seq = np.concatenate([seq, to_concat])
+		else:
+			seq = seq[:n]
 
 		# Normalize
 		seq = seq.reshape((1,time_step*num_features),order='F')
@@ -347,7 +352,7 @@ def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_hea
 
 		output_writer.writerow(['Area'] + real_tag_name + predicted_tag_name)
 		for i in range(0,num_regions):
-			output_writer.writerow([tagDataFrameName.iloc[i]] + list(labels[y_test[:,i].argmax(axis=1)]) + list(labels[predictions[:,i].argmax(axis=1)]))
+			output_writer.writerow([tagDataFrameName.iloc[i]] + list(y_test[:,i].argmax(axis=1)) + list(predictions[:,i].argmax(axis=1)))
 
 		# Closing the file
 		output_file.close()
@@ -392,7 +397,7 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_hea
 		output_writer.writerow(['Name'] + name_outputs)
 
 		for i in range(0,num_regions):
-			output_writer.writerow([regions[i]] + list(labels[predictions[:,i].argmax(axis=1)]))
+			output_writer.writerow([regions[i]] + list(predictions[:,i].argmax(axis=1)))
 
 		# Closing the file
 		output_file.close()
