@@ -1,5 +1,5 @@
 import pandas as pd
-import time, os, csv, re, sys, argparse
+import time, os, csv, re, sys, argparse, shutil
 import numpy as np
 import random as rn
 import tensorflow as tf
@@ -811,12 +811,26 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
 	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-	# If the experiment folder already exists, we will ignore it.
+	experimentFolder = False
+	experimentHasImage = False
+
 	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
 		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
 	# The experiment folder doesn't exists
 	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+
 		os.makedirs(path_experiment)
 
 		# Callback parameters
@@ -928,12 +942,26 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
 	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-	# If the experiment folder already exists, we will ignore it.
+	experimentFolder = False
+	experimentHasImage = False
+
 	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
 		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
 	# The experiment folder doesn't exists
 	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+
 		os.makedirs(path_experiment)
 
 		# Callback parameters
@@ -1093,252 +1121,280 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
 	network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
-  loss = 0.0
-  accuracy = 0.0
-  val_loss = 0.0
-  val_accuracy = 0.0  
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0  
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'LSTM_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
-    
-    model = Model(input,output)
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    # Show the neural net
-    print(model.summary())
-  
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss=loss_function, 
-        metrics = metrics)
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        validation_data=(x_test,y_test),
-        y=y_train,
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		# Create the model
+		k.clear_session()
 
-    plt.legend()
+		input = Input(shape=(time_step,num_features,))
+		x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		model = Model(input,output)
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+		# Show the neural net
+		print(model.summary())
 
-    print('|Precisión en Entrenamiento|')
-    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
-    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics = metrics)
 
-    print("")
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    print('|Precisión en Validación|')
-    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
-    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    print("")
+		plt.legend()
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		val_loss_index = np.array(history.history['val_loss']).argmin()
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
-    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
 	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
 	network,nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'LSTM_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'LSTM_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
-    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
-    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
-    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
-    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
-    
-    model = Model(input,[output_1,output_2,output_3,output_4])
-    y_train_t1 = y_train[:,0]
-    y_train_t2 = y_train[:,1]
-    y_train_t3 = y_train[:,2]
-    y_train_t4 = y_train[:,3]
-    y_test_t1 = y_test[:,0]
-    y_test_t2 = y_test[:,1]
-    y_test_t3 = y_test[:,2]
-    y_test_t4 = y_test[:,3]
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    # Show the neural net
-    print(model.summary())
-  
-    # Compiling the neural network
-    model.compile(optimizer=adam(lr=lr), 
-    	loss={"output_1" : loss_function, "output_2" : loss_function, "output_3" : loss_function, "output_4" : loss_function},
-    	metrics = metrics)
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
-        validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)    
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		# Create the model
+		k.clear_session()
 
-    plt.legend()
+		input = Input(shape=(time_step,num_features,))
+		x = defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
-    loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
-    loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
-    loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
-    accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
-    accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
-    accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
-    accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
-    val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
-    val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
-    val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
-    val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
-    val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
-    val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
-    val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+		# Show the neural net
+		print(model.summary())
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		# Compiling the neural network
+		model.compile(optimizer=adam(lr=lr), 
+			loss={"output_1" : loss_function, "output_2" : loss_function, "output_3" : loss_function, "output_4" : loss_function},
+			metrics = metrics)
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)    
 
-    writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
-    	val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)    
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)    
 
 # CNN + LSTM
 def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
@@ -1409,259 +1465,287 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
-  loss = 0.0
-  accuracy = 0.0
-  val_loss = 0.0
-  val_accuracy = 0.0
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'CNN_LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(substeps,time_step,num_features,))
-    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    model = Model(input,output)
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Show the neural net
-    print(model.summary())
-  
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss=loss_function, 
-        metrics = metrics)
+		# Create the model
+		k.clear_session()
 
-    x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
-    x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
+		input = Input(shape=(substeps,time_step,num_features,))
+		x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
-    # Training the model
-    history = model.fit(
-        x=x_train_2,
-        validation_data=(x_test_2,y_test),
-        y=y_train,
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		model = Model(input,output)
 
-    plt.legend()
+		# Show the neural net
+		print(model.summary())
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics = metrics)
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+		x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
+		x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
 
-    print('|Precisión en Entrenamiento|')
-    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
-    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+		# Training the model
+		history = model.fit(
+		    x=x_train_2,
+		    validation_data=(x_test_2,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    print("")
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    print('|Precisión en Validación|')
-    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
-    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+		plt.legend()
 
-    print("")
+		val_loss_index = np.array(history.history['val_loss']).argmin()
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
-    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   network,nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  nLayersConv1D = len(nNeuronsConv1D)
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'CNN_LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'CNN_LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(substeps,time_step,num_features,))
-    x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
-    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
-    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
-    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
-    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    model = Model(input,[output_1,output_2,output_3,output_4])
-    y_train_t1 = y_train[:,0]
-    y_train_t2 = y_train[:,1]
-    y_train_t3 = y_train[:,2]
-    y_train_t4 = y_train[:,3]
-    y_test_t1 = y_test[:,0]
-    y_test_t2 = y_test[:,1]
-    y_test_t3 = y_test[:,2]
-    y_test_t4 = y_test[:,3]
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Show the neural net
-    print(model.summary())
+		# Create the model
+		k.clear_session()
 
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function}, 
-        metrics = metrics)
+		input = Input(shape=(substeps,time_step,num_features,))
+		x = defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
 
-    x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
-    x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
 
-    # Training the model
-    history = model.fit(
-        x=x_train_2,
-        validation_data=(x_test_2,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
-        y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		# Show the neural net
+		print(model.summary())
 
-    plt.legend()
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function}, 
+		    metrics = metrics)
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
+		x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
-    loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
-    loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
-    loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
-    accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
-    accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
-    accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
-    accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
-    val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
-    val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
-    val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
-    val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
-    val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
-    val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
-    val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+		# Training the model
+		history = model.fit(
+		    x=x_train_2,
+		    validation_data=(x_test_2,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		plt.legend()
 
-    writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
-    	val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
 
 # LSTM
 def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
@@ -1709,226 +1793,254 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment,
 	experimentFolder,campaingsFull):
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
-  loss = 0.0
-  accuracy = 0.0
-  val_loss = 0.0
-  val_accuracy = 0.0  
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0  
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'LSTM-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)	
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	experimentFolder = False
+	experimentHasImage = False
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    # Create the model
-    k.clear_session()
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
-    
-    model = Model(input,output)
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Show the neural net
-    print(model.summary())
+		# Create the model
+		k.clear_session()
 
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss=loss_function, 
-        metrics =metrics)
+		input = Input(shape=(time_step,num_features,))
+		x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        validation_data=(x_test,y_test),
-        y=y_train,
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		model = Model(input,output)
 
-    plt.legend()
+		# Show the neural net
+		print(model.summary())
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics =metrics)
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    print('|Precisión en Entrenamiento|')
-    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
-    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    print("")
+		plt.legend()
 
-    print('|Precisión en Validación|')
-    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
-    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+		val_loss_index = np.array(history.history['val_loss']).argmin()
 
-    print("")
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		print("")
 
-    writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
 	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment,
 	experimentFolder,campaingsFull):
 
-  nLayers = len(nNeurons)
-  nLayersSequence = len(nNeuronsSequence)
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'LSTM_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	experimentFolder = False
+	experimentHasImage = False
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    # Create the model
-    k.clear_session()
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
-    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
-    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
-    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
-    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)    
-    
-    model = Model(input,[output_1,output_2,output_3,output_4])
-    y_train_t1 = y_train[:,0]
-    y_train_t2 = y_train[:,1]
-    y_train_t3 = y_train[:,2]
-    y_train_t4 = y_train[:,3]
-    y_test_t1 = y_test[:,0]
-    y_test_t2 = y_test[:,1]
-    y_test_t3 = y_test[:,2]
-    y_test_t4 = y_test[:,3]
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Show the neural net
-    print(model.summary())
+		# Create the model
+		k.clear_session()
 
-    # Compiling the neural network
-    model.compile(optimizer=adam(lr=lr), 
-        loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function},
-        metrics=metrics)
+		input = Input(shape=(time_step,num_features,))
+		x = defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)    
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
-        validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
 
-    plt.legend()
+		# Show the neural net
+		print(model.summary())
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		# Compiling the neural network
+		model.compile(optimizer=adam(lr=lr), 
+		    loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function},
+		    metrics=metrics)
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
-    loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
-    loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
-    loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
-    accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
-    accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
-    accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
-    accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
-    val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
-    val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
-    val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
-    val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
-    val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
-    val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
-    val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		plt.legend()
 
-    writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
-    	val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
 
 # CNN
 def defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
@@ -1974,252 +2086,280 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersConv1D = len(nNeuronsConv1D)
-  loss = 0.0
-  accuracy = 0.0
-  val_loss = 0.0
-  val_accuracy = 0.0  
+	nLayers = len(nNeurons)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0  
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'CNN-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%s,cF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'CNN-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%s,cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
-    output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
-    
-    model = Model(input,output)
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    # Show the neural net
-    print(model.summary())
-  
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss=loss_function, 
-        metrics = metrics)
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        validation_data=(x_test,y_test),
-        y=y_train,
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		# Create the model
+		k.clear_session()
 
-    plt.legend()
+		input = Input(shape=(time_step,num_features,))
+		x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+		model = Model(input,output)
+
+		# Show the neural net
+		print(model.summary())
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics = metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
 
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		val_loss_index = np.array(history.history['val_loss']).argmin()
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
 
-    print('|Precisión en Entrenamiento|')
-    print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
-    print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
 
-    print("")
+		print("")
 
-    print('|Precisión en Validación|')
-    print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
-    print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
 
-    print("")
+		print("")
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-    writeAccuracyResults(network,nameExperiment,path_experiment,loss,accuracy,val_loss,val_accuracy)
+		writeAccuracyResults(network,nameExperiment,path_experiment,loss,accuracy,val_loss,val_accuracy)
 
 def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
  patience_reduce_lr = 8, loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
   network,nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
 
-  # hyperparameters
-  #lr = 1e-02
-  #batch_size = 16
-  #epochs = 100
-  #shuffle = False
-  #percentageDropout = 0.3
-  #nNeurons = [16,8]
-  #nNeuronsSequence = [64,64]
-  #nNeuronsConv1D = [128,256,128]
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
 
-  nLayers = len(nNeurons)
-  nLayersConv1D = len(nNeuronsConv1D)
+	nLayers = len(nNeurons)
+	nLayersConv1D = len(nNeuronsConv1D)
 
-  # date
-  date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
 
-  # Experiment folder and name
-  nameModel = 'CNN_4out-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%scF_%s' % (lr,batch_size,
-  percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
-  
-  fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
-  path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+	# Experiment folder and name
+	nameModel = 'CNN_4out-lr%.1e-bs%d-drop%.2f-hnec%s-hne%s-epo%d-seqLen%d-KS%scF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
 
-  # If the experiment folder already exists, we will ignore it.
-  if os.path.exists(path_experiment):
-    print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
 
-  # The experiment folder doesn't exists
-  else:
-    os.makedirs(path_experiment)
+	experimentFolder = False
+	experimentHasImage = False
 
-    # Callback parameters
-    monitor_stop = 'val_loss' # What the model will check in order to stop the training
-    monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
 
-    callbacks = []
-    callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
-                                    save_best_only=True, mode='min', verbose=1))
-    callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
-    callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
-    callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
 
-    # Create the model
-    k.clear_session()
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
 
-    input = Input(shape=(time_step,num_features,))
-    x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
-    output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
-    output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
-    output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
-    output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
-    
-    model = Model(input,[output_1,output_2,output_3,output_4])
-    y_train_t1 = y_train[:,0]
-    y_train_t2 = y_train[:,1]
-    y_train_t3 = y_train[:,2]
-    y_train_t4 = y_train[:,3]
-    y_test_t1 = y_test[:,0]
-    y_test_t2 = y_test[:,1]
-    y_test_t3 = y_test[:,2]
-    y_test_t4 = y_test[:,3]
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
 
-    # Show the neural net
-    print(model.summary())
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
 
-    # Compiling the neural network
-    model.compile(
-        optimizer=adam(lr=lr), 
-        loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function}, 
-        metrics = metrics)
+		# Create the model
+		k.clear_session()
 
-    # Training the model
-    history = model.fit(
-        x=x_train,
-        validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
-        y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
-        batch_size=batch_size, 
-        epochs=epochs, 
-        shuffle=shuffle,
-        callbacks=callbacks,
-        verbose=1,
-        workers=6,
-        use_multiprocessing=True)
-    
-    plt.figure(figsize=(10,5))
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')
-      
-    # Error de entrenamiento
-    plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
-    # Error de validación
-    plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+		input = Input(shape=(time_step,num_features,))
+		x = defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
 
-    plt.legend()
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
 
-    val_loss_index = np.array(history.history['val_loss']).argmin()
+		# Show the neural net
+		print(model.summary())
 
-    loss = np.array(history.history['loss'])[val_loss_index]
-    loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
-    loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
-    loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
-    loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
-    accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
-    accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
-    accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
-    accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
-    val_loss = np.array(history.history['val_loss'])[val_loss_index]
-    val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
-    val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
-    val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
-    val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
-    val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
-    val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
-    val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
-    val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function}, 
+		    metrics = metrics)
 
-    # Clean the folder where the models are saved
-    best_model_name = cleanExperimentFolder(path_experiment)
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
 
-    # Save figure
-    plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
-    writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
-    	val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+		plt.legend()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
 
 def main():
 
