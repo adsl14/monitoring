@@ -44,7 +44,6 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
     # Maximized window
     wm = plt.get_current_fig_manager()
     wm.window.state('zoomed')
-    plt.legend()
 
     # Show s2
     for index in indexes_sentinel2:
@@ -69,8 +68,7 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
     fig.tight_layout()
     # Maximized window
     wm = plt.get_current_fig_manager()
-    wm.window.state('zoomed')
-    plt.legend()    
+    wm.window.state('zoomed')   
 
     # Show radar
     for i in range(0,num_files_radar):
