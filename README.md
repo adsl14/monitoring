@@ -42,3 +42,4 @@ Deep learning network for monitoring areas.
 7. Install sklearn: `pip install sklearn`
 8. Install matplotlib: `pip install matplotlib`
 9. Install Linux commands in Windows: `conda install m2-base`
+10. Install Python extensions for Microsoft Windows: `conda install pywin32`
