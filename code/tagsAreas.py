@@ -1,4 +1,4 @@
-from cleanData import path_radar, pd, indexes_sentinel1_v2
+from cleanData import path_radar, pd, indexes_sentinel1_v2, num_files_radar
 from downloadData_EE import os, indexes_sentinel2
 import csv, datetime
 import matplotlib.dates as dt
@@ -35,7 +35,6 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
     formatter = dt.DateFormatter('%Y-%m-%d')  # Specify the format - %b gives us Jan, Feb...
     locator = dt.MonthLocator()  # every month
 
-    num_files_radar = len(indexes_sentinel1_v2)
     num_files_s2 = len(indexes_sentinel2)
 
     j = 0
@@ -110,7 +109,10 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
         print("Introduzca un número permitido.")
 
     # Close all the figures
-    plt.close('all')
+    try:
+    	plt.close('all')
+    except:
+    	print("The windows are already closed. No need to close them")
     actual+=1
 
     # Clean the window output
