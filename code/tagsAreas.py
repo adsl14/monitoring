@@ -16,8 +16,7 @@ num_files_s2 = len(indexes_sentinel2)
 figureCounter = 0
 
 myDPI = 96
-screenSize = [GetSystemMetrics(1),GetSystemMetrics(0)]
-figureSize = [screenSize[0]*0.90,screenSize[1]*0.40]
+figureSize = [GetSystemMetrics(1)*0.90,GetSystemMetrics(0)*0.40]
 
 # Change x axis text size
 matplotlib.rc('xtick', labelsize=8)
