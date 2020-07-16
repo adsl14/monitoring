@@ -1,15 +1,46 @@
 from cleanData import path_radar, pd, indexes_sentinel1_v2, num_files_radar
 from downloadData_EE import os, indexes_sentinel2
 import csv, datetime
+import matplotlib
+import matplotlib as mpl
 import matplotlib.dates as dt
 import matplotlib.pyplot as plt
+from win32api import GetSystemMetrics
 
 # Change this line in order to use other campaings (make sure the only difference is the date)
 campaings = ["rice_test_A,B_DESC,ASC_2016-09-01_2017-08-31"]
 # Change this line to rename the class name
 labels_header = ["class"]
 
-def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
+num_files_s2 = len(indexes_sentinel2)
+figureCounter = 0
+
+myDPI = 96
+screenSize = [GetSystemMetrics(1),GetSystemMetrics(0)]
+figureSize = [screenSize[0]*0.90,screenSize[1]*0.40]
+
+# Change x axis text size
+matplotlib.rc('xtick', labelsize=8)
+
+def createWindow(numPlots,figureCounter):
+
+	fig, axs = plt.subplots(numPlots,figsize=(figureSize[1]/myDPI,figureSize[0]/myDPI), dpi=myDPI)
+	fig.tight_layout()
+
+	thisManager = plt.get_current_fig_manager()
+
+	# Maximized window
+	thisManager.window.state('normal')
+	# Figure absolute position
+	thisManager.window.wm_geometry('+'+str(int(figureSize[1]*figureCounter))+'+'+str(0))
+	# Padding modification
+	matplotlib.pyplot.subplots_adjust(hspace=numPlots*0.07, top=1.00, bottom=0.06)
+
+	figureCounter+=1
+
+	return axs, fig, figureCounter
+
+def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounter):
 
   path_dataset = os.path.join(path_radar,epoch,'dataset')
 
@@ -35,22 +66,16 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
     formatter = dt.DateFormatter('%Y-%m-%d')  # Specify the format - %b gives us Jan, Feb...
     locator = dt.MonthLocator()  # every month
 
-    num_files_s2 = len(indexes_sentinel2)
-
-    j = 0
-    fig, axs = plt.subplots(num_files_s2)
-    fig.tight_layout()
-    # Maximized window
-    wm = plt.get_current_fig_manager()
-    wm.window.state('zoomed')
-
     # Show s2
+    j = 0
+    axs, fig, figureCounter = createWindow(num_files_s2,figureCounter)
+    fig.canvas.set_window_title('SENTINEL2')
     for index in indexes_sentinel2:
 
       data_s2 = s2[index].values
       
-      axs[j].set_title(index)
-      axs[j].plot(dates_s2, data_s2)
+      axs[j].plot(dates_s2, data_s2,label=index)
+      axs[j].legend()
       axs[j].grid()
       plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
       X = axs[j].xaxis
@@ -59,23 +84,19 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
 
       j = j + 1
 
-    # Avoid the command line being stopped
+    # Show the plot in background
     plt.draw()
 
-    j = 0
-    fig, axs = plt.subplots(num_files_radar)
-    fig.tight_layout()
-    # Maximized window
-    wm = plt.get_current_fig_manager()
-    wm.window.state('zoomed')   
-
     # Show radar
+    j = 0
+    axs, fig, figureCounter = createWindow(num_files_radar,figureCounter)
+    fig.canvas.set_window_title('RADAR')
     for i in range(0,num_files_radar):
 
       data_s1 = s1[i][indexes_sentinel1_v2[i]].values
 
-      axs[j].set_title(indexes_sentinel1_v2[i])
       axs[j].plot(dates_s1[i],data_s1,label=indexes_sentinel1_v2[i])
+      axs[j].legend()
       axs[j].grid()
       plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
       X = axs[j].xaxis
@@ -84,7 +105,7 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
 
       j = j + 1
 
-    # Avoid the command line being stopped
+    # Show the plot in background
     plt.draw()
 
     print("Campaña: %s" %(campaing))
@@ -113,10 +134,16 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual):
     	plt.close('all')
     except:
     	print("The windows are already closed. No need to close them")
+
+    # Reset var
+    figureCounter = 0
+
+    # Increase the number of plot tagged
     actual+=1
 
     # Clean the window output
     #clear_output()
+
   print("Proceso de etiquetado finalizado.")
 
 for campaing in campaings:
@@ -134,7 +161,7 @@ for campaing in campaings:
       # Tag the areas
       num_areas = len(areas)
 
-      etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual)
+      etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
 
   # if 'tags.csv' exists
   else:
@@ -176,7 +203,7 @@ for campaing in campaings:
             print("Recinto %s ya etiquetado" %(id_name))
 
           # Tag the areas
-          etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual)
+          etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
 
         # Remove original and rename temporal file
         os.remove(tags_path)
