@@ -127,6 +127,16 @@ def cleanExperimentFolder(folderNameExperimentPath):
 
   # Get best model name
   return models[0]
+
+def write_model_structure(model, model_path):
+
+	# Write model structure in a file
+	stringlist = []
+	model.summary(print_fn=lambda x: stringlist.append(x))
+	short_model_summary = "\n".join(stringlist)
+	out = open(os.path.join(model_path,"structure.txt"),'w')
+	out.write(short_model_summary)
+	out.close
  
 def plot_history(history):
 
@@ -853,8 +863,9 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 
 		model = Model(input,output)
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)		
 
 		# Compiling the neural network
 		model.compile(
@@ -995,8 +1006,9 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		y_test_t3 = y_test[:,2]
 		y_test_t4 = y_test[:,3]
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -1191,8 +1203,9 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 
 		model = Model(input,output)
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -1333,8 +1346,9 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
 		y_test_t3 = y_test[:,2]
 		y_test_t4 = y_test[:,3]
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(optimizer=adam(lr=lr), 
@@ -1535,8 +1549,9 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
 
 		model = Model(input,output)
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -1680,8 +1695,9 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
 		y_test_t3 = y_test[:,2]
 		y_test_t4 = y_test[:,3]
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -1850,8 +1866,9 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 
 		model = Model(input,output)
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -1979,8 +1996,9 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
 		y_test_t3 = y_test[:,2]
 		y_test_t4 = y_test[:,3]
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(optimizer=adam(lr=lr), 
@@ -2155,8 +2173,9 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 
 		model = Model(input,output)
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
@@ -2297,8 +2316,9 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
 		y_test_t3 = y_test[:,2]
 		y_test_t4 = y_test[:,3]
 
-		# Show the neural net
+		# Show and write the neural net
 		print(model.summary())
+		write_model_structure(model, path_experiment)
 
 		# Compiling the neural network
 		model.compile(
