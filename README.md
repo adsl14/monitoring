@@ -1,7 +1,7 @@
 # Monitoring
 -------------
 
-![Monitoring logo](images/logo.jpg)
+<img src="images/logo.jpg" width="50%">
 
 Deep learning network for monitoring areas using sentinel-2 for analisys and sentinel-1 for analisys and training.
 
