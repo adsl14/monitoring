@@ -1,7 +1,9 @@
 # Monitoring
 -------------
 
-Deep learning network for monitoring areas.
+![Monitoring logo](images/logo.jpg)
+
+Deep learning network for monitoring areas using sentinel-2 for analisys and sentinel-1 for analisys and training.
 
 ## Install Earth Engine API and Tensorflow in Windows 10
 
