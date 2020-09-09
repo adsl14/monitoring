@@ -13,7 +13,7 @@ start_date = '2016-09-01' # PagoBásico 09-01, Rice 11-01
 end_date = '2017-08-31' # PagoBásico 08-31, Rice 02-01
 sentinels = ["A","B"] # A, B or AB
 orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
-indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
+indexes_sentinel1 = ['VH_Sum_VV', 'VV'] # Rice VH_Sum_VV
 indexes_sentinel2 = ['ICEDEX','B11']
 buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 means apply buffer.
 

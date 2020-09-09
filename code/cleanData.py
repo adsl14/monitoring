@@ -8,7 +8,7 @@ tables_folder = 'tables'
 nameExperimentsFolder = 'experiments'
 radar_folder = 'radar'
 # Change 'nameExperiment' var if you want to rename the name of the experiment
-nameExperiment = 'rice'
+nameExperiment = 'test'
 indexes_sentinel1_v2 = []
 
 # Update indexes_sentinel1 in other var
@@ -20,7 +20,7 @@ for i in indexes_sentinel1:
 campaing_date = start_date+"_"+end_date
 experimentFolder = nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits))
 campaingFolder = experimentFolder + "_" + campaing_date
-num_files_radar = len(indexes_sentinel1_v2)
+num_files_radar = len(sentinels) * len(orbits)
 
 path_tables = os.path.join(tables_folder)
 path_radar = os.path.join(tables_folder,radar_folder)
@@ -111,7 +111,7 @@ def main():
         observation_s1 = int(dataFrame_s1.shape[0]/areas)
 
         dataFrames_s1.append(dataFrame_s1)
-        observations_s1.append(observation_s1)
+        observations_s1.append(observation_s1)       
 
     # Iterate over each area
     for i in range(0,areas):

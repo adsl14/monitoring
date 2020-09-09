@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from win32api import GetSystemMetrics
 
 # Change this line in order to use other campaings (make sure the only difference is the date)
-campaings = ["rice_test_A,B_DESC,ASC_2016-09-01_2017-08-31"]
+campaings = ["test_A,B_DESC,ASC_2016-09-01_2017-08-31"]
 # Change this line to rename the class name
 labels_header = ["class"]
 
@@ -44,6 +44,11 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounte
   path_dataset = os.path.join(path_radar,epoch,'dataset')
 
   for area in areas:
+
+    # ignore file
+    if(area.split(".")[-1] != "csv"):
+      continue
+
     s1 = []
     dates_s1 = []
 
@@ -110,15 +115,16 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounte
     print("Campaña: %s" %(campaing))
     print("Progreso: %d/%d" %(actual,num_areas))
     print("Etiquetando recinto: %s" %(area))
-    #print("0 -> NO actividad; 1 -> SI actividad; -1 -> Ignorar muestra en caso de duda")
-    #print("0 -> NO ; 1 -> SI; -1 -> Ignorar muestra en caso de duda")
-    print("0 -> SI con incidencias")
-    print("1 -> SI")
-    print("2 -> NO")
-    print("-1 -> Ignorar muestra")
+    #print("0 -> NO actividad; 1 -> SI actividad; -1 -> Ignorar muestra en caso de duda") # Activity
+    #print("0 -> NO ; 1 -> SI; -1 -> Ignorar muestra en caso de duda") # Rice
+    #print("0 -> SI con incidencias; 1 -> SI; 2 -> NO; -1 -> Ignorar muestra") # Rice v2
+    print("-1 -> Ignorar muestra")    
+    print("0 -> BARBECHO")
+    print("1 -> RASTROJO")
+    print("Ctrl + C y luego Enter -> Cerrar proceso de etiquetado")
     while True:
       tag_0 = input()
-      if tag_0 in ['0','1','2','-1']:
+      if tag_0 in ['0','1','-1']:
         if tag_0 != '-1':
           print("Opción seleccionada: %s" %(tag_0))
         else:
