@@ -1,4 +1,4 @@
-from cleanData import path_radar, pd, indexes_sentinel1_v2, num_files_radar
+from cleanData import path_radar, pd, indexes_sentinel1_v2
 from downloadData_EE import os, indexes_sentinel2
 import csv, datetime
 import matplotlib
@@ -12,7 +12,8 @@ campaings = ["test_A,B_DESC,ASC_2016-09-01_2017-08-31"]
 # Change this line to rename the class name
 labels_header = ["class"]
 
-num_files_s2 = len(indexes_sentinel2)
+num_indexes_s2 = len(indexes_sentinel2)
+num_indexes_radar = len(indexes_sentinel1_v2)
 figureCounter = 0
 
 myDPI = 96
@@ -23,7 +24,7 @@ matplotlib.rc('xtick', labelsize=8)
 
 def createWindow(numPlots,figureCounter):
 
-	fig, axs = plt.subplots(numPlots,figsize=(figureSize[1]/myDPI,figureSize[0]/myDPI), dpi=myDPI)
+	fig, axs = plt.subplots(numPlots, figsize=(figureSize[1]/myDPI,figureSize[0]/myDPI), dpi=myDPI)
 	fig.tight_layout()
 
 	thisManager = plt.get_current_fig_manager()
@@ -72,7 +73,7 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounte
 
     # Show s2
     j = 0
-    axs, fig, figureCounter = createWindow(num_files_s2,figureCounter)
+    axs, fig, figureCounter = createWindow(num_indexes_s2, figureCounter)
     fig.canvas.set_window_title('SENTINEL2')
     for index in indexes_sentinel2:
 
@@ -93,9 +94,9 @@ def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounte
 
     # Show radar
     j = 0
-    axs, fig, figureCounter = createWindow(num_files_radar,figureCounter)
+    axs, fig, figureCounter = createWindow(num_indexes_radar, figureCounter)
     fig.canvas.set_window_title('RADAR')
-    for i in range(0,num_files_radar):
+    for i in range(0, num_indexes_radar):
 
       data_s1 = s1[i][indexes_sentinel1_v2[i]].values
 
