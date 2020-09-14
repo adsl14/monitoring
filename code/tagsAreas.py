@@ -16,13 +16,14 @@ num_indexes_s2 = len(indexes_sentinel2)
 num_indexes_radar = len(indexes_sentinel1_v2)
 figureCounter = 0
 
+# width 25% height 70%
 myDPI = 96
 figureSize = [GetSystemMetrics(1)*0.90,GetSystemMetrics(0)*0.40]
 
 # Change x axis text size
 matplotlib.rc('xtick', labelsize=8)
 
-def createWindow(numPlots,figureCounter):
+def createWindow(numPlots,figureCounter,figureSize):
 
 	fig, axs = plt.subplots(numPlots, figsize=(figureSize[1]/myDPI,figureSize[0]/myDPI), dpi=myDPI)
 	fig.tight_layout()
@@ -40,180 +41,195 @@ def createWindow(numPlots,figureCounter):
 
 	return axs, fig, figureCounter
 
-def etiquetar(path_radar,epoch,areas,output_writer,num_areas,actual,figureCounter):
+def etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter):
 
-  path_dataset = os.path.join(path_radar,epoch,'dataset')
+	path_dataset = os.path.join(path_radar,campaing,'dataset')
 
-  for area in areas:
+	for area in areas:
 
-    # ignore file
-    if(area.split(".")[-1] != "csv"):
-      continue
+		# ignore file
+		if(area.split(".")[-1] != "csv"):
+			continue
 
-    s1 = []
-    dates_s1 = []
+		s1 = []
+		dates_s1 = []
 
-    area_path = os.path.join(path_dataset,area)
-    dataframe = pd.read_csv(area_path)
+		area_path = os.path.join(path_dataset,area)
+		dataframe = pd.read_csv(area_path)
 
-    for index in indexes_sentinel1_v2:
-     s1_aux = dataframe[["date", index]].drop_duplicates().dropna()
-     dates_s1_aux = s1_aux["date"]
+		for index in indexes_sentinel1_v2:
+		 s1_aux = dataframe[["date", index]].drop_duplicates().dropna()
+		 dates_s1_aux = s1_aux["date"]
 
-     dates_s1.append(list(map(datetime.datetime.strptime, dates_s1_aux, len(dates_s1_aux)*['%Y-%m-%d'])))
-     s1.append(s1_aux)
+		 dates_s1.append(list(map(datetime.datetime.strptime, dates_s1_aux, len(dates_s1_aux)*['%Y-%m-%d'])))
+		 s1.append(s1_aux)
 
-    # get the uniques dates whit it correspond data
-    s2 = dataframe[ ["date"] + indexes_sentinel2].drop_duplicates().dropna()
-    dates_s2 = s2["date"]
-    dates_s2 = list(map(datetime.datetime.strptime, dates_s2, len(dates_s2)*['%Y-%m-%d']))
+		# get the uniques dates whit it correspond data
+		s2 = dataframe[ ["date"] + indexes_sentinel2].drop_duplicates().dropna()
+		dates_s2 = s2["date"]
+		dates_s2 = list(map(datetime.datetime.strptime, dates_s2, len(dates_s2)*['%Y-%m-%d']))
 
-    formatter = dt.DateFormatter('%Y-%m-%d')  # Specify the format - %b gives us Jan, Feb...
-    locator = dt.MonthLocator()  # every month
+		formatter = dt.DateFormatter('%Y-%m-%d')  # Specify the format - %b gives us Jan, Feb...
+		locator = dt.MonthLocator()  # every month
 
-    # Show s2
-    j = 0
-    axs, fig, figureCounter = createWindow(num_indexes_s2, figureCounter)
-    fig.canvas.set_window_title('SENTINEL2')
-    for index in indexes_sentinel2:
+		# Show s2
+		j = 0
+		axs, fig, figureCounter = createWindow(num_indexes_s2, figureCounter, figureSize)
 
-      data_s2 = s2[index].values
-      
-      axs[j].plot(dates_s2, data_s2,label=index)
-      axs[j].legend()
-      axs[j].grid()
-      plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
-      X = axs[j].xaxis
-      X.set_major_locator(locator)
-      X.set_major_formatter(formatter)
+		# axs has to be a list. If it as only one index, 'createWindow' won't return a list
+		if type(axs) is  not list:
+			axs = [axs]
 
-      j = j + 1
+		fig.canvas.set_window_title('SENTINEL2')
+		for index in indexes_sentinel2:
 
-    # Show the plot in background
-    plt.draw()
+			data_s2 = s2[index].values
+			
+			axs[j].plot(dates_s2, data_s2,label=index)
+			axs[j].legend()
+			axs[j].grid()
+			plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
+			X = axs[j].xaxis
+			X.set_major_locator(locator)
+			X.set_major_formatter(formatter)
 
-    # Show radar
-    j = 0
-    axs, fig, figureCounter = createWindow(num_indexes_radar, figureCounter)
-    fig.canvas.set_window_title('RADAR')
-    for i in range(0, num_indexes_radar):
+			j = j + 1
 
-      data_s1 = s1[i][indexes_sentinel1_v2[i]].values
+		# Show the plot in background
+		plt.draw()
 
-      axs[j].plot(dates_s1[i],data_s1,label=indexes_sentinel1_v2[i])
-      axs[j].legend()
-      axs[j].grid()
-      plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
-      X = axs[j].xaxis
-      X.set_major_locator(locator)
-      X.set_major_formatter(formatter)
+		# Show radar
+		j = 0
+		axs, fig, figureCounter = createWindow(num_indexes_radar, figureCounter, figureSize)
 
-      j = j + 1
+		# axs has to be a list. If it as only one index, 'createWindow' won't return a list
+		if type(axs) is  not list:
+			axs = [axs]
 
-    # Show the plot in background
-    plt.draw()
+		fig.canvas.set_window_title('RADAR')
+		for i in range(0, num_indexes_radar):
 
-    print("Campaña: %s" %(campaing))
-    print("Progreso: %d/%d" %(actual,num_areas))
-    print("Etiquetando recinto: %s" %(area))
-    #print("0 -> NO actividad; 1 -> SI actividad; -1 -> Ignorar muestra en caso de duda") # Activity
-    #print("0 -> NO ; 1 -> SI; -1 -> Ignorar muestra en caso de duda") # Rice
-    #print("0 -> SI con incidencias; 1 -> SI; 2 -> NO; -1 -> Ignorar muestra") # Rice v2
-    print("-1 -> Ignorar muestra")    
-    print("0 -> BARBECHO")
-    print("1 -> RASTROJO")
-    print("Ctrl + C y luego Enter -> Cerrar proceso de etiquetado")
-    while True:
-      tag_0 = input()
-      if tag_0 in ['0','1','-1']:
-        if tag_0 != '-1':
-          print("Opción seleccionada: %s" %(tag_0))
-        else:
-          print('Recinto %s ignorado.' %(area))
-        output_writer.writerow([area,tag_0])
-        break  
-      else:
-        print("Introduzca un número permitido.")
+			data_s1 = s1[i][indexes_sentinel1_v2[i]].values
 
-    # Close all the figures
-    try:
-    	plt.close('all')
-    except:
-    	print("The windows are already closed. No need to close them")
+			axs[j].plot(dates_s1[i],data_s1,label=indexes_sentinel1_v2[i])
+			axs[j].legend()
+			axs[j].grid()
+			plt.setp(axs[j].xaxis.get_majorticklabels(), rotation=25)
+			X = axs[j].xaxis
+			X.set_major_locator(locator)
+			X.set_major_formatter(formatter)
 
-    # Reset var
-    figureCounter = 0
+			j = j + 1
 
-    # Increase the number of plot tagged
-    actual+=1
+		# Show the plot in background
+		plt.draw()
 
-    # Clean the window output
-    #clear_output()
+		print("Campaña: %s" %(campaing))
+		print("Progreso: %d/%d" %(actual,num_areas))
+		print("Etiquetando recinto: %s" %(area))
+		#print("0 -> NO actividad; 1 -> SI actividad; -1 -> Ignorar muestra en caso de duda") # Activity
+		#print("0 -> NO ; 1 -> SI; -1 -> Ignorar muestra en caso de duda") # Rice
+		#print("0 -> SI con incidencias; 1 -> SI; 2 -> NO; -1 -> Ignorar muestra") # Rice v2
+		print("-1 -> Ignorar muestra")    
+		print("0 -> BARBECHO")
+		print("1 -> RASTROJO")
+		print("Ctrl + C y luego Enter -> Cerrar proceso de etiquetado")
+		while True:
+			tag_0 = input()
+			if tag_0 in ['0','1','-1']:
+				if tag_0 != '-1':
+					print("Opción seleccionada: %s" %(tag_0))
+				else:
+					print('Recinto %s ignorado.' %(area))
+				output_writer.writerow([area,tag_0])
+				break  
+			else:
+				print("Introduzca un número permitido.")
 
-  print("Proceso de etiquetado finalizado.")
+		# Close all the figures
+		try:
+			plt.close('all')
+		except:
+			print("The windows are already closed. No need to close them")
 
-for campaing in campaings:
+		# Reset var
+		figureCounter = 0
 
-  areas = os.listdir(os.path.join(path_radar,campaing,'dataset'))
-  tags_path = os.path.join(path_radar,campaing,'tags.csv')
-  actual = 1
+		# Increase the number of plot tagged
+		actual+=1
 
-  # Creamos el fichero de etiquetas si no existe
-  if not os.path.exists(tags_path):
-    with open(tags_path, mode='w', newline='') as output_file:
-      output_writer = csv.writer(output_file,delimiter=',')
-      output_writer.writerow(['id']+labels_header)
+		# Clean the window output
+		#clear_output()
 
-      # Tag the areas
-      num_areas = len(areas)
+	print("Proceso de etiquetado finalizado.")
 
-      etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
+def main():
 
-  # if 'tags.csv' exists
-  else:
+	for campaing in campaings:
 
-    # Update tags
-    tags_path_temp = os.path.join(path_radar,campaing,'tags_temp.csv')
-    if os.path.exists(tags_path_temp):
-      # Remove original and rename temporal file
-      os.remove(tags_path)
-      os.rename(tags_path_temp,tags_path)
+		areas = os.listdir(os.path.join(path_radar,campaing,'dataset'))
+		tags_path = os.path.join(path_radar,campaing,'tags.csv')
+		actual = 1
 
-    dataframe_o = pd.read_csv(tags_path)
-    dataframe_o_ids = dataframe_o["id"]
+		# Creamos el fichero de etiquetas si no existe
+		if not os.path.exists(tags_path):
+			with open(tags_path, mode='w', newline='') as output_file:
+				output_writer = csv.writer(output_file,delimiter=',')
+				output_writer.writerow(['id']+labels_header)
 
-    num_areas = len(areas)
+				# Tag the areas
+				num_areas = len(areas)
 
-    # Remove the areas that are already taged
-    for id_name in dataframe_o_ids.values:
-      id_name = id_name.split('/')[-1]
-      if id_name in areas: 
-        areas.remove(id_name)
-        actual = actual + 1
+				etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
 
-    # If the size of the dataframe is not equal to the size of the areas in the folder, that means there are some areas that we have to tag
-    if num_areas > 0:
+		# if 'tags.csv' exists
+		else:
 
-      with open(tags_path, mode='r') as file_input:
-        with open(tags_path_temp, mode='w', newline='') as output_file:
-          output_writer = csv.writer(output_file,delimiter=',')
-          output_writer.writerow(['id']+labels_header)
+			# Update tags
+			tags_path_temp = os.path.join(path_radar,campaing,'tags_temp.csv')
+			if os.path.exists(tags_path_temp):
+				# Remove original and rename temporal file
+				os.remove(tags_path)
+				os.rename(tags_path_temp,tags_path)
 
-          rows = dataframe_o.shape[0]
+			dataframe_o = pd.read_csv(tags_path)
+			dataframe_o_ids = dataframe_o["id"]
 
-          # Copy the data from original file to temporal one, and remove the name of the area from the array of areas
-          for i in range(0,rows):
-            id_name = dataframe_o_ids.iloc[i]
-            output_writer.writerow(dataframe_o.iloc[i,:])
+			num_areas = len(areas)
 
-            print("Recinto %s ya etiquetado" %(id_name))
+			# Remove the areas that are already taged
+			for id_name in dataframe_o_ids.values:
+				id_name = id_name.split('/')[-1]
+				if id_name in areas: 
+					areas.remove(id_name)
+					actual = actual + 1
 
-          # Tag the areas
-          etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
+			# If the size of the dataframe is not equal to the size of the areas in the folder, that means there are some areas that we have to tag
+			if num_areas > 0:
 
-        # Remove original and rename temporal file
-        os.remove(tags_path)
-        os.rename(tags_path_temp,tags_path)
+				with open(tags_path, mode='r') as file_input:
+					with open(tags_path_temp, mode='w', newline='') as output_file:
+						output_writer = csv.writer(output_file,delimiter=',')
+						output_writer.writerow(['id']+labels_header)
 
-    else:
-      print("Todos los recintos pertenecientes a la campaña %s ya han sido etiquetados." % (campaing))
+						rows = dataframe_o.shape[0]
+
+						# Copy the data from original file to temporal one, and remove the name of the area from the array of areas
+						for i in range(0,rows):
+							id_name = dataframe_o_ids.iloc[i]
+							output_writer.writerow(dataframe_o.iloc[i,:])
+
+							print("Recinto %s ya etiquetado" %(id_name))
+
+						# Tag the areas
+						etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCounter)
+
+					# Remove original and rename temporal file
+					os.remove(tags_path)
+					os.rename(tags_path_temp,tags_path)
+
+			else:
+				print("Todos los recintos pertenecientes a la campaña %s ya han sido etiquetados." % (campaing))
+
+if __name__ == '__main__':
+	main()      
