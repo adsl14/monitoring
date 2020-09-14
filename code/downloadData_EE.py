@@ -9,13 +9,14 @@ import os
 import time
 
 # Change this values if you want to download data from other dates or indexes
-start_date = '2016-09-01' # PagoBásico 09-01, Rice 11-01
-end_date = '2017-08-31' # PagoBásico 08-31, Rice 02-01
-sentinels = ["A","B"] # A, B or AB
-orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
-indexes_sentinel1 = ['VH_Sum_VV', 'VV'] # Rice VH_Sum_VV
-indexes_sentinel2 = ['ICEDEX','B11']
+start_date = '2018-09-01' # PagoBásico 09-01, Rice 11-01
+end_date = '2019-08-31' # PagoBásico 08-31, Rice 02-01
+sentinels = ["B"] # A, B or AB
+orbits = ["ASC"] # ASC, DESC or ASC_DESC.
+indexes_sentinel1 = ['VH'] # Rice VH_Sum_VV
+indexes_sentinel2 = ['NDVI']
 buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 means apply buffer.
+natural_data = 1 # 0 means use indexes in decibels. 1 means use natural numbers for the indexes.
 
 # Change this line to use others user shapefiles
 # USER
@@ -28,10 +29,13 @@ nameUser = "Dani" # "Dani", "soysusanacanton"
 #kmls = [["Trigo", "users/"+nameUser+"/"+"Trigo"],["Avena", "users/"+nameUser+"/"+"Avena"],["Girasol", "users/"+nameUser+"/"+"Girasol"],["Barbecho tradicional", "users/"+nameUser+"/"+"Barbecho_tradicional"],["Barbecho sin produccion", "users/"+nameUser+"/"+"Barbecho_sin_produccion"]]
 
 # WATER
-kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
+#kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
 #kmls = [["ARROZ_18", "users/"+nameUser+"/"+"ARROZ_2018"]]
 #kmls = [["ARROZ_19", "users/"+nameUser+"/"+"ARROZ_2019"]]
 #kmls = [["Arroz_PDR_2019_revisar_30N", "users/"+nameUser+"/"+"Arroz_PDR_2019_revisar_30N"]]
+
+# RASTROJOS
+kmls = [["TRIGO_19", "users/"+nameUser+"/"+"TRIGO_DURO2019_MAYOR1HEC"]]
 
 def time_convert(sec):
   mins = sec // 60
@@ -224,9 +228,6 @@ def main():
       if buffer_value < 0:
         table = getBuffer(table,buffer_value)
 
-      # Get the areas
-      #table = getFeaturesRange(table,0,11)
-
       # Get radar
       for orbit in orbits:
         for sentinel in sentinels:
@@ -240,7 +241,15 @@ def main():
             s1 = loadSentinel1(table, start_date, end_date, sentinel, orbit)
 
             # Export the table (sentinel-1)
-            tableSeries = getTimeSeriesTask(s1[0],table);  #s1[0] = db; s1[1] = natural
+            if natural_data == 1:
+                print("Descargando datos en valores naturales")
+            elif natural_data == 0:
+                print("Descargando datos en decibelios")
+            else:
+                print("Error en el valor de la variable 'natural_data'. Abortando...")
+                exit()
+                
+            tableSeries = getTimeSeriesTask(s1[natural_data],table);  #s1[0] = db; s1[1] = natural
             datasetTask = exportTableSeries(tableSeries,nameOutputFile,indexes_sentinel1)
 
             # Start the task.
@@ -254,30 +263,31 @@ def main():
           else:
             print("Fichero %s ya descargado." %(nameOutputFile))
 
+      # Check if we have to download sentinel 2 indexes
+      if indexes_sentinel2:
+          nameOutputFile = kml[0]+"_s2"
 
-      nameOutputFile = kml[0]+"_s2"
+          # Check if the file already exists
+          if not os.path.exists(os.path.join("dataEE",nameOutputFile+".csv")): 
 
-      # Check if the file already exists
-      if not os.path.exists(os.path.join("dataEE",nameOutputFile+".csv")): 
+            # Get Sentinel-2
+            # Load the imagery with the current feature collection
+            s2 = loadSentinel2(table, start_date, end_date)
 
-        # Get Sentinel-2
-        # Load the imagery with the current feature collection
-        s2 = loadSentinel2(table, start_date, end_date)
+            # Export the table (sentinel-2)
+            tableSeries_s2 = getTimeSeriesTask(s2,table);
+            datasetTask_s2 = exportTableSeries(tableSeries_s2,kml[0]+"_s2",indexes_sentinel2)
 
-        # Export the table (sentinel-2)
-        tableSeries_s2 = getTimeSeriesTask(s2,table);
-        datasetTask_s2 = exportTableSeries(tableSeries_s2,kml[0]+"_s2",indexes_sentinel2)
+            # Start the task.
+            datasetTask_s2.start()
 
-        # Start the task.
-        datasetTask_s2.start()
+            while datasetTask_s2.active():
+              print('Descargando datos de %s...' %(kml[0]+"_s2"))
+              time.sleep(30)
+            print('Terminado.')
 
-        while datasetTask_s2.active():
-          print('Descargando datos de %s...' %(kml[0]+"_s2"))
-          time.sleep(30)
-        print('Terminado.')
-
-      else:
-        print("Fichero %s ya descargado." %(nameOutputFile))
+          else:
+            print("Fichero %s ya descargado." %(nameOutputFile))
 
   end = time.time()
 
