@@ -1,6 +1,6 @@
 from cleanData import path_radar, pd, indexes_sentinel1_v2
 from downloadData_EE import os, indexes_sentinel2
-import csv, datetime
+import csv, datetime, numpy as np
 import matplotlib
 import matplotlib as mpl
 import matplotlib.dates as dt
@@ -76,15 +76,14 @@ def etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCou
 		j = 0
 		axs, fig, figureCounter = createWindow(num_indexes_s2, figureCounter, figureSize)
 
-		# axs has to be a list. If it as only one index, 'createWindow' won't return a list
-		if type(axs) is  not list:
-			axs = [axs]
+		# axs has to be a numpy array. If it as only one index, 'createWindow' won't return a numpy array
+		if type(axs) is not np.ndarray:
+			axs = np.array([axs])
 
 		fig.canvas.set_window_title('SENTINEL2')
 		for index in indexes_sentinel2:
 
 			data_s2 = s2[index].values
-			
 			axs[j].plot(dates_s2, data_s2,label=index)
 			axs[j].legend()
 			axs[j].grid()
@@ -102,9 +101,9 @@ def etiquetar(path_radar,campaing,areas,output_writer,num_areas,actual,figureCou
 		j = 0
 		axs, fig, figureCounter = createWindow(num_indexes_radar, figureCounter, figureSize)
 
-		# axs has to be a list. If it as only one index, 'createWindow' won't return a list
-		if type(axs) is  not list:
-			axs = [axs]
+		# axs has to be a numpy array. If it as only one index, 'createWindow' won't return a numpy array
+		if type(axs) is not np.ndarray:
+			axs = np.array([axs])
 
 		fig.canvas.set_window_title('RADAR')
 		for i in range(0, num_indexes_radar):
