@@ -249,17 +249,17 @@ def LoadModel(modelPath):
 	models = os.listdir(modelPath)
 	models.sort(key=natural_keys,reverse=True)
 
-	# Check if the model folder has 3 files (logs, image and model)
-	if len(models) == 3:
-		best_model_name = models[2]
+	# Check if the model folder has 4 files (structure, logs, image and model)
+	if len(models) == 4:
+		best_model_name = models[3]
 		modelPath = os.path.join(modelPath,best_model_name)
 
 		model = load_model(modelPath)
 
 		print('Model %s loaded' % (modelPath))
 	else:
-		model = None
-		best_model_name = None
+		print("Model folder hasn't got all the necessary files (structure, logs, image and model)! Aborting...")
+		exit()
 
 	return model, best_model_name
 
@@ -391,8 +391,8 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_hea
 		output_writer = csv.writer(output_file, delimiter=',')
 		output_writer.writerow(['NameModel',modelPath])
 
-		for i in range(0,num_outputs):
-			name_outputs.append('Class_' + str(i+1))
+		for label in labels_header:
+			name_outputs.append(label)
 
 		output_writer.writerow(['Name'] + name_outputs)
 
