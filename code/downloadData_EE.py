@@ -9,12 +9,12 @@ import os
 import time
 
 # Change this values if you want to download data from other dates or indexes
-start_date = '2018-09-01' # PagoBásico 09-01, Rice 11-01
-end_date = '2019-08-31' # PagoBásico 08-31, Rice 02-01
-sentinels = ["B"] # A, B or AB
-orbits = ["ASC"] # ASC, DESC or ASC_DESC.
-indexes_sentinel1 = ['VH'] # Rice VH_Sum_VV
-indexes_sentinel2 = ['NDVI']
+start_date = '2016-09-01' # PagoBásico 09-01, Rice 11-01
+end_date = '2017-08-31' # PagoBásico 08-31, Rice 02-01
+sentinels = ["A","B"] # A, B or AB
+orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
+indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
+indexes_sentinel2 = ['ICEDEX', 'B11']
 buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 means apply buffer.
 natural_data = 1 # 0 means use indexes in decibels. 1 means use natural numbers for the indexes.
 
@@ -29,13 +29,13 @@ nameUser = "Dani" # "Dani", "soysusanacanton"
 #kmls = [["Trigo", "users/"+nameUser+"/"+"Trigo"],["Avena", "users/"+nameUser+"/"+"Avena"],["Girasol", "users/"+nameUser+"/"+"Girasol"],["Barbecho tradicional", "users/"+nameUser+"/"+"Barbecho_tradicional"],["Barbecho sin produccion", "users/"+nameUser+"/"+"Barbecho_sin_produccion"]]
 
 # WATER
-#kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
+kmls = [["ARROZ_17", "users/"+nameUser+"/"+"ARROZ_2017"]]
 #kmls = [["ARROZ_18", "users/"+nameUser+"/"+"ARROZ_2018"]]
 #kmls = [["ARROZ_19", "users/"+nameUser+"/"+"ARROZ_2019"]]
 #kmls = [["Arroz_PDR_2019_revisar_30N", "users/"+nameUser+"/"+"Arroz_PDR_2019_revisar_30N"]]
 
 # RASTROJOS
-kmls = [["TRIGO_19", "users/"+nameUser+"/"+"TRIGO_DURO2019_MAYOR1HEC"]]
+#kmls = [["TRIGO_19", "users/"+nameUser+"/"+"TRIGO_DURO2019_MAYOR1HEC"]]
 
 def time_convert(sec):
   mins = sec // 60

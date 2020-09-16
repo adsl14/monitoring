@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from win32api import GetSystemMetrics
 
 # Change this line in order to use other campaings (make sure the only difference is the date)
-campaings = ["test_A,B_DESC,ASC_2016-09-01_2017-08-31"]
+campaings = ["rice_A,B_DESC,ASC_2016-09-01_2017-08-31"]
 # Change this line to rename the class name
 labels_header = ["class"]
 

@@ -8,7 +8,7 @@ tables_folder = 'tables'
 nameExperimentsFolder = 'experiments'
 radar_folder = 'radar'
 # Change 'nameExperiment' var if you want to rename the name of the experiment
-nameExperiment = 'test'
+nameExperiment = 'rice'
 indexes_sentinel1_v2 = []
 
 # Update indexes_sentinel1 in other var
