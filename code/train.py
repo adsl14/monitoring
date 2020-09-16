@@ -114,7 +114,7 @@ def cleanExperimentFolder(folderNameExperimentPath):
   models.sort(key=natural_keys,reverse=True)
 
   # Remove from the list, the folder 'logs'
-  models = models[1:]
+  models = models[2:]
 
   # We check if there is, at least, one min model saved
   if len(models) > 1:
@@ -247,18 +247,18 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 		path_train = os.path.join(path_radar,campaing,"train.csv")
 		path_test = os.path.join(path_radar,campaing,"test.csv")
 
+		# Read 'tags.csv' and clean tag dataframe. Ignore the samples that were marked as -1
+		tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
+
+		name_region = tagDataFrame.columns[0]
+		labels_header = list(tagDataFrame.columns[1:])
+
 		if os.path.exists(path_train) and os.path.exists(path_test):
 
 			print("Campaña: %s. Split ya realizado." %(campaing))
 			continue
 
 		else:
-
-			# Read 'tags.csv' and clean tag dataframe. Ignore the samples that were marked as -1
-			tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
-
-			name_region = tagDataFrame.columns[0]
-			labels_header = list(tagDataFrame.columns[1:])
 
 			for label_header in labels_header:
 				tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
@@ -458,6 +458,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	# --- TEST BLOCK ---
 	# Read the test .csv
 	tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaings[-1],tags_name))
+	labels_header = list(tagDataFrameTest.columns[1:])
 	for label_header in labels_header:
 		tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[label_header] != -1]
 	print("'tags.csv' de test cargado correctamente")
