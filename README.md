@@ -28,7 +28,7 @@ Deep learning network for monitoring areas using sentinel-2 for analisys and sen
 
 ### 4. Install Python 3.7
 
-#### 4.1 Install Anaconda: [Anaconda]:(https://www.anaconda.com/distribution/)
+#### 4.1 Install Anaconda: [Anaconda](https://www.anaconda.com/distribution/)
 
 ### 5. Install Earth Engine API, Tensorflow and Keras.
 
