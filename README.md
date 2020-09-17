@@ -18,11 +18,11 @@ Deep learning network for monitoring areas using sentinel-2 for analisys and sen
 
 ### 2. Install CUDA
 
-#### 2.1 Download CUDA 10.0 and install it in C hard disk: [CUDA](https://developer.nvidia.com/cuda-downloads)
+#### 2.1 Download CUDA Toolkit 10.0 and install it in C hard disk: [CUDA](https://developer.nvidia.com/cuda-10.0-download-archive)
 
 ### 3. Install cuDNN
 
-#### 3.1 Download cuDNN v7.6.5 (November 5th, 2019), for CUDA 10.0 (you need to register first): [cuDNN](https://developer.nvidia.com/rdp/form/cudnn-download-survey)
+#### 3.1 Download cuDNN v7.6.5 (November 5th, 2019), for CUDA 10.0 (you need to register first): [cuDNN](https://developer.nvidia.com/rdp/cudnn-archive)
 
 #### 3.2 Unzip the file downloaded, copy the folders from the zip (include, lib, bin) and replace them with the same folders that are located where CUDA 10.0 were installed.
 
