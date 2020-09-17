@@ -16,7 +16,7 @@ orbits = ["DESC", "ASC"] # ASC, DESC or ASC_DESC.
 indexes_sentinel1 = ['VH_Sum_VV'] # Rice VH_Sum_VV
 indexes_sentinel2 = ['ICEDEX', 'B11']
 buffer_value = 0 # 0 or greater means there is no buffer reduction. Less than 0 means apply buffer.
-natural_data = 1 # 0 means use indexes in decibels. 1 means use natural numbers for the indexes.
+natural_data = 0 # 0 means use indexes in decibels. 1 means use natural numbers for the indexes.
 
 # Change this line to use others user shapefiles
 # USER
