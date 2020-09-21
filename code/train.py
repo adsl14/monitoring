@@ -66,7 +66,7 @@ def defineArgParsers():
 	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','. Type -> string. Example -> --indexes_sentinel1='VH_Sum_VV,VV'")
 	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','. Type -> string. Example -> --labels='cumple,no_cumple")
 	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ','). Type -> string. Example -> --colors_label='cyan,orange'")
-	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|'). Type -> string. Example -> --'rice_A,B_DESC,ASC_2016-11-15_2017-01-15|rice_A,B_DESC,ASC_2017-11-15_2018-01-15'")
+	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|'). Type -> string. Example -> --campaings='rice_A,B_DESC,ASC_2016-11-15_2017-01-15|rice_A,B_DESC,ASC_2017-11-15_2018-01-15'")
 	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv). Type -> string. Example -> --tags_name='tags.csv'")
 
 	# OPTIONAL
