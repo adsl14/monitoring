@@ -22,13 +22,13 @@ def defineArgParsers():
 
 	# MANDATORY
 	required = parser.add_argument_group('required arguments')
-	required.add_argument("--campaingPath", type=str, default='', help="Path where the campaing data is located")
-	required.add_argument("--tags_name", type=str, default='', help="Tag filename of the regions. Only requerided when 'networkPath' is empty")
-	required.add_argument("--nameExperiment", type=str, default='', help="Experiment name (activity,rice). Only requerided when 'networkPath' is empty")
+	required.add_argument("--campaingPath", type=str, default='', help="Path where the campaing data is located. Type -> string. Example -> --campaingPath='tables\\radar\\rice_A,B_DESC,ASC_2016-09-01_2017-08-31'")
+	required.add_argument("--tags_name", type=str, default='', help="Tag filename of the regions. Only requerided when 'networkPath' is empty. Type -> string. Example -> --tags_name='tags.csv'")
+	required.add_argument("--nameExperiment", type=str, default='', help="Experiment name (activity,rice). Only requerided when 'networkPath' is empty. Type -> string. Example -> --nameExperiment='activity'")
 
 	# OPTIONAL
-	parser.add_argument("--networkPath", type=str, default='', help="Path where the model is located")
-	parser.add_argument("--percentageGPU", type=float, default=0.0, help="Amount of use the memory of the GPU")
+	parser.add_argument("--networkPath", type=str, default='', help="Path where the model is located. Type -> string. Example -> --networkPath='experiments\\rice\\models\rice_A_ASC-cF_True\\LSTM-lr1.0e-03-bs16-drop0.20-hnes[128]-hne[64]-epo100-seqLen108-cF_True'")
+	parser.add_argument("--percentageGPU", type=float, default=0.0, help="Amount of use the memory of the GPU. Type -> float. Example -> --percentageGPU=0.30")
 
 	return parser.parse_args()
 
