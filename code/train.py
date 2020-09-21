@@ -60,33 +60,33 @@ def defineArgParsers():
 
 	# MANDATORY
 	required = parser.add_argument_group('required arguments')
-	required.add_argument("--nameExperiment",type=str, default='', help="Experiment name (activity,rice)")
-	required.add_argument("--sentinels",type=str, default='', help="Sentinel to be used (A, B or AB). Separator -> ','")
-	required.add_argument("--orbits",type=str, default='', help="Orbit to be used (ASC, DESC or ASC_DESC). Separator -> ','")
-	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','")
-	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','")
-	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ',')")
-	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|')")
-	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv)")
+	required.add_argument("--nameExperiment",type=str, default='', help="Experiment name (activity,rice). Type -> string. Example -> --nameExperiment='activity'")
+	required.add_argument("--sentinels",type=str, default='', help="Sentinel to be used (A, B or AB). Separator -> ','. Type -> string. Example -> --sentinels='A,B'")
+	required.add_argument("--orbits",type=str, default='', help="Orbit to be used (ASC, DESC or ASC_DESC). Separator -> ','. Type -> string. Example -> --orbits='DESC,ASC'")
+	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','. Type -> string. Example -> --indexes_sentinel1='VH_Sum_VV,VV'")
+	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','. Type -> string. Example -> --labels='cumple,no_cumple")
+	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ','). Type -> string. Example -> --colors_label='cyan,orange'")
+	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|'). Type -> string. Example -> --'rice_A,B_DESC,ASC_2016-11-15_2017-01-15|rice_A,B_DESC,ASC_2017-11-15_2018-01-15'")
+	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv). Type -> string. Example -> --tags_name='tags.csv'")
 
 	# OPTIONAL
-	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM, CNN)")
-	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU")
-	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier.")
-	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate")
-	parser.add_argument("--epochs",type=int, default=100, help="Number of epochs.")
-	parser.add_argument("--percentageDropout",type=float, default=0.2, help="How many links of the network will be ommited in order to avoid overfitting")
-	parser.add_argument("--patience",type=int, default=30, help="Number of epochs with no improvement after which training will be stopped.")
-	parser.add_argument("--patience_reduce_lr",type=int, default=8, help="Num epochs to reduce learning rate.")
-	parser.add_argument("--nNeuronsSequence",type=str, default="128", help="Number of units in the LSTM layer and number of LSTM layers")
-	parser.add_argument("--nNeuronsConv1D",type=str, default="64,64", help="Number of kernels in the Convolutional layer and number of Convolutionals layers")
-	parser.add_argument("--nNeurons",type=str, default="64", help="Number of neurons at the end of the network (hidden layers)")
-	parser.add_argument("--loss_function",type=str, default="categorical_crossentropy", help="loss function (categorical_crossentropy)")
-	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch.")
-	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement.")
-	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test.")
-	parser.add_argument("--indexes_sentinel2",type=str, default='', help="indexes of optic to be used (Rice: ICEDEX, B11). Separator -> ','")
-	parser.add_argument("--kernelSize",type=int, default=3, help="kernel's size for convolutional 1D")
+	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM, CNN). Type -> string. Example -> --network='LSTM+CNN'")
+	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU. Type -> float. Example -> --percentageGPU=0.30")
+	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier. Type -> float. Example -> --learning_rate=1e-03")
+	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate. Type -> int. Example -> --batch_size=16")
+	parser.add_argument("--epochs",type=int, default=100, help="Number of epochs. Type -> int. Example -> --epochs=100")
+	parser.add_argument("--percentageDropout",type=float, default=0.2, help="How many links of the network will be ommited in order to avoid overfitting.  Type -> float. Example -> --percentageDropout=0.2")
+	parser.add_argument("--patience",type=int, default=30, help="Number of epochs with no improvement after which training will be stopped. Type -> int. Example -> --patience=30")
+	parser.add_argument("--patience_reduce_lr",type=int, default=8, help="Num epochs to reduce learning rate. Type -> int. Example -> --patience_reduce_lr=8")
+	parser.add_argument("--nNeuronsSequence",type=str, default="128", help="Number of units in the LSTM layer and number of LSTM layers. Type -> string. Example -> --nNeuronsSequence='128,64'")
+	parser.add_argument("--nNeuronsConv1D",type=str, default="64,64", help="Number of kernels in the Convolutional layer and number of Convolutionals layers. Type -> string. Example -> --nNeuronsConv1D='64,64'")
+	parser.add_argument("--nNeurons",type=str, default="64", help="Number of neurons at the end of the network (hidden layers). Type -> string. Example -> --nNeurons='64,32'")
+	parser.add_argument("--loss_function",type=str, default="categorical_crossentropy", help="loss function (categorical_crossentropy). Type -> string. Example -> --loss_function='categorical_crossentropy'")
+	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch. Type -> string. Example -> --shuffle='y'")
+	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement. Type -> float. Example -> --min_delta=1e-03")
+	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test. Type -> string. Example -> --campaingsFull='n'")
+	parser.add_argument("--indexes_sentinel2",type=str, default='', help="indexes of optic to be used (Rice: ICEDEX, B11). Separator -> ','. Type -> string. Example -> --indexes_sentinel2='NDVI,B11'")
+	parser.add_argument("--kernelSize",type=int, default=3, help="kernel's size for convolutional 1D. Type -> int. Example -> --kernelSize=3")
 
 	return parser.parse_args()
    
@@ -2448,16 +2448,20 @@ def main():
 	if args.colors_label == '':
 		print("Error -> 'colors_label' not specified")
 		sys.exit()
-	colors_label = args.colors_label.split(",") 
-
-	experimentFolder = args.nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits)) + "-cF_" + str(args.campaingsFull)
-
-	path_radar = os.path.join(tables_folder,radar_folder)
+	colors_label = args.colors_label.split(",")	
 
 	if args.campaings == '':
 		print("Error -> 'campaings' not specified")
 		sys.exit()
 	campaings = args.campaings.split("|")
+
+	# If we're using only one campaing, we have to split it to train and test samples
+	if args.campaingsFull == False and len(campaings) == 1:
+		args.campaingsFull = True
+
+	experimentFolder = args.nameExperiment + "_" + ",".join(map(str,sentinels))  + "_" + ",".join(map(str,orbits)) + "-cF_" + str(args.campaingsFull)
+
+	path_radar = os.path.join(tables_folder,radar_folder)		
 
 	if args.tags_name == '':
 		print("Error -> 'tags_name' not specified")
