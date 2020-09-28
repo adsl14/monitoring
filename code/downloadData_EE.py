@@ -1,4 +1,4 @@
-# Change the first 7 values from this code. Then, run it. When it finishes, download
+# Change the first 8 values from this code. Then, run it. When it finishes, download
 # the folder 'dataEE' from your drive and move it to the path where
 # this code 'downloadData_EE.py' is located. Don't change any
 # value from this code until you run "cleanData.py" and save the data in "tables" 
@@ -84,6 +84,18 @@ def addICEDEX(img):
   icedex = x1.subtract(x2)
 
   return img.addBands(icedex.float().rename('ICEDEX'))
+
+def addRVI(img):
+  
+  vh = img.select('VH')
+  vv = img.select('VV')
+  
+  num = vh.multiply(4)
+  den = vv.add(vh)
+  
+  rvi = num.divide(den)
+  
+  return img.addBands(rvi.float().rename('RVI'))
 
 def normalizedDifference(a, b):
   
@@ -191,6 +203,10 @@ def loadSentinel1(table, start_date, end_date, type_network='', orbit=''):
   # ADD VH_Sum_VV BAND
   s1 = s1.map(addVH_Sum_VV); 
   s1_n = s1_n.map(addVH_Sum_VV);
+
+  # ADD RVI
+  s1 = s1.map(addRVI)
+  s1_n = s1_n.map(addRVI)
   
   return [s1, s1_n];
 
