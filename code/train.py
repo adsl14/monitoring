@@ -24,7 +24,7 @@ import keras.backend as k
 import keras
 from keras.optimizers import adam
 from keras.models import Model, Sequential, load_model
-from keras.layers import Dense, Dropout, Input, Flatten, LSTM, CuDNNLSTM, Conv1D, MaxPooling1D, Concatenate, BatchNormalization, GlobalAveragePooling1D, TimeDistributed
+from keras.layers import Dense, Dropout, Input, Flatten, LSTM, CuDNNLSTM, CuDNNGRU, Conv1D, MaxPooling1D, Concatenate, BatchNormalization, GlobalAveragePooling1D, TimeDistributed
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint,TensorBoard
 
@@ -70,7 +70,7 @@ def defineArgParsers():
 	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv). Type -> string. Example -> --tags_name='tags.csv'")
 
 	# OPTIONAL
-	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, LSTM+CNN, CNN+LSTM, LSTM, CNN). Type -> string. Example -> --network='LSTM+CNN'")
+	parser.add_argument("--network",type=str, default='LSTM_p_CNN', help="Select the network you want to use (LSTM_p_CNN, GRU_p_CNN, LSTM+CNN, GRU+CNN, CNN+LSTM, CNN+GRU, LSTM, GRU, CNN). Type -> string. Example -> --network='LSTM+CNN'")
 	parser.add_argument("--percentageGPU",type=float, default=0.0, help="Amount of use the memory of the GPU. Type -> float. Example -> --percentageGPU=0.30")
 	parser.add_argument("--learning_rate",type=float, default=1e-4, help="Learning rate modifier. Type -> float. Example -> --learning_rate=1e-03")
 	parser.add_argument("--batch_size",type=int, default=16, help="Size of batch (number of samples) to evaluate. Type -> int. Example -> --batch_size=16")
@@ -147,6 +147,7 @@ def plot_history(history):
   plt.plot(history.epoch,np.array(history.history['loss']),label='categorical_crossentropy (training)')
   plt.plot(history.epoch,np.array(history.history['val_loss']),label='categorical_crossentropy (validation)')
   plt.legend()
+  plt.grid()
 
   max_y = max(max(np.array(history.history['loss'])), max(np.array(history.history['val_loss'])))
 
@@ -178,6 +179,14 @@ def add_CuDNNLSTM_Layer(number,return_sequence,data):
               recurrent_initializer=keras.initializers.glorot_uniform(seed=seed),
               bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
   return data
+
+def add_CuDNNGRU_Layer(number,return_sequence,data):
+
+  data = CuDNNGRU(number, return_sequences=return_sequence,
+              kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
+              recurrent_initializer=keras.initializers.glorot_uniform(seed=seed),
+              bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data) 
+  return data  
 
 def add_Conv1D_Layer(number, kernelSize, data):
 
@@ -898,6 +907,7 @@ def TrainLSTM_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, 
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1041,6 +1051,363 @@ def TrainLSTM_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDrop
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+
+# GRU || CNN
+def defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
+
+	#--------------
+	# GRU block
+	#--------------
+	# Check if the user has entered at least one hidden layer sequence
+	if nLayersSequence > 0:
+	  # Has two hidden LSTM layers
+	  if nLayersSequence > 1:
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], True, input)
+
+	    for i in range(1,nLayersSequence-1):
+	      x = add_CuDNNGRU_Layer(nNeuronsSequence[i], True, x)
+
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[-1], False, x)
+
+	  # Only one hidden LSTM layer
+	  else:
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, input)
+
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)            
+
+	else:
+	  print("Please, insert at least one recurrent layer.")
+	  assert False
+
+
+	#--------------
+	# CONV1D block
+	#--------------
+	# Check if the user has entered at least one hidden layer conv1D
+	if nLayersConv1D > 0:
+	    x_2 = add_Conv1D_Layer(nNeuronsConv1D[0], kernelSize, input)
+	    #x_2 = BatchNormalization()(x_2)
+
+	    for i in range(1,nLayersConv1D):
+	      x_2 = add_Conv1D_Layer(nNeuronsConv1D[i], kernelSize, x_2)
+	      #x_2 = BatchNormalization()(x_2)
+
+	      if i % 2 == 1:          	
+	      	if percentageDropout > 0.0:
+	      		x_2 = Dropout(percentageDropout)(x_2)
+	      	x_2 = MaxPooling1D()(x_2)	      		      
+
+	    #x_2 = GlobalAveragePooling1D()(x_2)
+	    x_2 = Flatten()(x_2)
+
+	else:
+	  print("Please, insert at least one conv1D layer.")
+	  assert False
+
+	#--------------
+	# CONCATENATE GRU + Conv1D
+	#--------------    
+	x = Concatenate()([x,x_2])
+
+	#--------------
+	# Dense block
+	#--------------
+	# ADD dense layer
+	if nLayers > 0:
+	  for i in range(0,nLayers):
+	    x = add_Dense_Layer(nNeurons[i], x)
+
+	  # Add dropout before the output layer
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
+
+	return x
+
+def TrainGRU_p_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
+	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0	
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU_p_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+		model = Model(input,output)
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)		
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics =metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+
+def TrainGRU_p_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8],
+	shuffle=False, min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8, loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], 
+	*, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU_p_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
+
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss={"output_1" : loss_function, "output_2" : loss_function, "output_3" : loss_function, "output_4" : loss_function}, 
+		    metrics =metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1238,6 +1605,7 @@ def TrainLSTM_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nN
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1380,6 +1748,348 @@ def TrainLSTM_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)    
+
+# GRU + CNN
+def defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons):
+
+    #--------------
+    # GRU block
+    #--------------
+    # Check if the user has entered at least one hidden layer sequence
+    if nLayersSequence > 0:
+      x = add_CuDNNGRU_Layer(nNeuronsSequence[0], True, input)
+
+      for i in range(1,nLayersSequence):
+        x = add_CuDNNGRU_Layer(nNeuronsSequence[i], True, x)
+
+      if percentageDropout > 0.0:
+            x = Dropout(percentageDropout)(x)  
+    else:
+      print("Please, insert at least one recurrent layer.")
+      assert False
+
+    #--------------
+    # CONV1D block
+    #--------------
+    # Check if the user has entered at least one hidden layer conv1D
+    if nLayersConv1D > 0:
+        x = add_Conv1D_Layer(nNeuronsConv1D[0], kernelSize, x)
+        #x = BatchNormalization()(x)
+
+        for i in range(1,nLayersConv1D):
+          x = add_Conv1D_Layer(nNeuronsConv1D[i], kernelSize, x)
+          #x = BatchNormalization()(x)
+
+          if i % 2 == 1:          	
+          	if percentageDropout > 0.0:
+          		x = Dropout(percentageDropout)(x)
+          	x = MaxPooling1D()(x)          		
+
+        # Apply global average pooling and make the output only one dimension
+        #x = GlobalAveragePooling1D()(x)
+        x = Flatten()(x)   
+
+    else:
+      print("Please, insert at least one conv1D layer.")
+      assert False
+
+    #--------------
+    # Dense block
+    #--------------
+    # ADD dense layer
+    if nLayers > 0:
+      for i in range(0,nLayers):
+        x = add_Dense_Layer(nNeurons[i], x)
+
+      # Add dropout before the output layer
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
+
+    return x
+
+def TrainGRU_CNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
+	network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0  
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU_CNN-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+		model = Model(input,output)
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics = metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+
+def TrainGRU_CNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+	patience_reduce_lr = 8,loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, 
+	network,nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU_CNN_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
+
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(optimizer=adam(lr=lr), 
+			loss={"output_1" : loss_function, "output_2" : loss_function, "output_3" : loss_function, "output_4" : loss_function},
+			metrics = metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)    
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1587,6 +2297,7 @@ def TrainCNN_LSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  n
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1733,6 +2444,362 @@ def TrainCNN_LSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropou
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+
+# CNN + GRU
+def defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
+
+    #--------------
+    # CONV1D block
+    #--------------
+    # Check if the user has entered at least one hidden layer conv1D
+    if nLayersConv1D > 0:
+        x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[0], kernelSize, input)
+
+        for i in range(1,nLayersConv1D):
+          x = add_Conv1DTimeDistributed_Layer(nNeuronsConv1D[i], kernelSize, x)
+
+          # Add a dropout and a Pooling each 2 conv1D layer
+          if i % 2 == 1:
+            if percentageDropout > 0.0:
+              x = TimeDistributed(Dropout(percentageDropout))(x)
+            x = TimeDistributed(MaxPooling1D())(x)              
+
+        # Apply flatten
+        x = TimeDistributed(Flatten())(x)
+
+    else:
+      print("Please, insert at least one conv1D layer.")
+      assert False
+ 
+    #--------------
+    # GRU block
+    #--------------
+    # Check if the user has entered at least one hidden layer sequence
+    if nLayersSequence > 0:
+      # The user has entered two hidden layers
+      if nLayersSequence > 1:
+        x = add_CuDNNGRU_Layer(nNeuronsSequence[0], True, x)
+
+        for i in range(1,nLayersSequence-1):
+          x = add_CuDNNGRU_Layer(nNeuronsSequence[i], True, x)
+
+        x = add_CuDNNGRU_Layer(nNeuronsSequence[-1], False, x)
+  
+      # The user has entered only one hidden layer
+      else:
+        x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, x)
+
+      # Add dropout layer 
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
+    else:
+      print("Please, insert at least one recurrent layer.")
+      assert False
+
+    #--------------
+    # Dense block
+    #--------------
+    # ADD dense layer
+    if nLayers > 0:
+      for i in range(0,nLayers):
+        x = add_Dense_Layer(nNeurons[i], x)
+
+      # Add dropout before the output layer
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
+
+    return x	
+
+def TrainCNN_GRU(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+ patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
+  network, nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'CNN_GRU-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(substeps,time_step,num_features,))
+		x = defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+		model = Model(input,output)
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics = metrics)
+
+		x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
+		x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
+
+		# Training the model
+		history = model.fit(
+		    x=x_train_2,
+		    validation_data=(x_test_2,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+
+def TrainCNN_GRU_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0,  nNeuronsSequence=[64,64],nNeuronsConv1D=[128,256,128], kernelSize=3, nNeurons=[16,8], shuffle=False, min_delta= 1e-03, patience_stop = 30,
+ patience_reduce_lr = 8, substeps=1,loss_function = 'categorical_crossentropy',  metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes,
+  network,nameExperimentsFolder, nameExperiment, experimentFolder,campaingsFull):
+
+	# hyperparameters
+	#lr = 1e-02
+	#batch_size = 16
+	#epochs = 100
+	#shuffle = False
+	#percentageDropout = 0.3
+	#nNeurons = [16,8]
+	#nNeuronsSequence = [64,64]
+	#nNeuronsConv1D = [128,256,128]
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	nLayersConv1D = len(nNeuronsConv1D)
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'CNN_GRU_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hnec%s-hne%s-epo%d-seqLen%d-KS%s-cF_%s' % (lr,batch_size,
+	percentageDropout,str(nNeuronsSequence),str(nNeuronsConv1D), str(nNeurons),epochs,time_step,str(kernelSize),campaingsFull)
+
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(substeps,time_step,num_features,))
+		x = defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)
+
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function}, 
+		    metrics = metrics)
+
+		x_train_2 = x_train.reshape((x_train.shape[0], substeps, time_step, num_features))
+		x_test_2 = x_test.reshape((x_test.shape[0], substeps, time_step, num_features))
+
+		# Training the model
+		history = model.fit(
+		    x=x_train_2,
+		    validation_data=(x_test_2,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -1901,6 +2968,7 @@ def TrainLSTM(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuro
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -2030,6 +3098,306 @@ def TrainLSTM_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		loss1 = np.array(history.history['output_1_loss'])[val_loss_index]
+		loss2 = np.array(history.history['output_2_loss'])[val_loss_index]
+		loss3 = np.array(history.history['output_3_loss'])[val_loss_index]
+		loss4 = np.array(history.history['output_4_loss'])[val_loss_index]
+		accuracy1 = np.array(history.history['output_1_categorical_accuracy'])[val_loss_index]
+		accuracy2 = np.array(history.history['output_2_categorical_accuracy'])[val_loss_index]
+		accuracy3 = np.array(history.history['output_3_categorical_accuracy'])[val_loss_index]
+		accuracy4 = np.array(history.history['output_4_categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_loss1 = np.array(history.history['val_output_1_loss'])[val_loss_index]
+		val_loss2 = np.array(history.history['val_output_2_loss'])[val_loss_index]
+		val_loss3 = np.array(history.history['val_output_3_loss'])[val_loss_index]
+		val_loss4 = np.array(history.history['val_output_4_loss'])[val_loss_index]
+		val_accuracy1 = np.array(history.history['val_output_1_categorical_accuracy'])[val_loss_index]
+		val_accuracy2 = np.array(history.history['val_output_2_categorical_accuracy'])[val_loss_index]
+		val_accuracy3 = np.array(history.history['val_output_3_categorical_accuracy'])[val_loss_index]
+		val_accuracy4 = np.array(history.history['val_output_4_categorical_accuracy'])[val_loss_index]
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults_4outputs(network,nameExperiment,path_experiment,loss,loss1,loss2,loss3,loss4,accuracy1,accuracy2,accuracy3,accuracy4,
+			val_loss,val_loss1,val_loss2,val_loss3,val_loss4,val_accuracy1,val_accuracy2,val_accuracy3,val_accuracy4)
+
+# GRU
+def defineGRU(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons):
+
+	#--------------
+	# GRU block
+	#--------------
+	# ADD Recurrent layer
+	# Check if the user has entered at least one hidden layer sequence
+	if nLayersSequence > 0:
+	  # The user has entered two hidden layers
+	  if nLayersSequence > 1:
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], True, input)
+
+	    for i in range(1,nLayersSequence-1):
+	      x = add_CuDNNGRU_Layer(nNeuronsSequence[i], True, x)
+
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[-1], False, x)
+
+	  # The user has entered only one hidden layer
+	  else:
+	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, input)
+	      
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
+	else:
+	  print("Please, insert at least one recurrent layer.")
+	  assert False
+
+	#--------------
+	# Dense block
+	#--------------
+	# ADD dense layer
+	if nLayers > 0:
+	  for i in range(0,nLayers):
+	    x = add_Dense_Layer(nNeurons[i], x)
+
+	  # Add dropout before the output layer
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
+
+	return x
+
+def TrainGRU(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment,
+	experimentFolder,campaingsFull):
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+	loss = 0.0
+	accuracy = 0.0
+	val_loss = 0.0
+	val_accuracy = 0.0  
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)	
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed))(x)
+
+		model = Model(input,output)
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(
+		    optimizer=adam(lr=lr), 
+		    loss=loss_function, 
+		    metrics =metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    validation_data=(x_test,y_test),
+		    y=y_train,
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
+
+		val_loss_index = np.array(history.history['val_loss']).argmin()
+
+		loss = np.array(history.history['loss'])[val_loss_index]
+		accuracy = np.array(history.history['categorical_accuracy'])[val_loss_index]
+		val_loss = np.array(history.history['val_loss'])[val_loss_index]
+		val_accuracy = np.array(history.history['val_categorical_accuracy'])[val_loss_index]
+
+		print('|Precisión en Entrenamiento|')
+		print("Mejor modelo: ", str(round(accuracy*100,2)) + ' %')
+		print("Mínimo: ", str(round(min(np.array(history.history['categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		print('|Precisión en Validación|')
+		print("Mejor modelo: ", str(round(val_accuracy*100,2)) + ' %')
+		print("Mínimo:", str(round(min(np.array(history.history['val_categorical_accuracy']))*100,2)) + ' %')
+
+		print("")
+
+		# Clean the folder where the models are saved
+		best_model_name = cleanExperimentFolder(path_experiment)
+
+		# Save figure
+		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
+
+		writeAccuracyResults(network,nameExperiment, path_experiment,loss,accuracy,val_loss,val_accuracy)
+
+def TrainGRU_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsSequence = [64,64],nNeurons=[16,8], shuffle=False,  min_delta= 1e-03, patience_stop = 30, patience_reduce_lr = 8,
+	loss_function = 'categorical_crossentropy', metrics = ['categorical_accuracy'], *, x_train, y_train, x_test, y_test, time_step, num_features, num_classes, network, nameExperimentsFolder, nameExperiment,
+	experimentFolder,campaingsFull):
+
+	nLayers = len(nNeurons)
+	nLayersSequence = len(nNeuronsSequence)
+
+	# date
+	date = dateTime.now().strftime("%d:%m:%y:%H:%M:%S")
+
+	# Experiment folder and name
+	nameModel = 'GRU_4out-lr%.1e-bs%d-drop%.2f-hnes%s-hne%s-epo%d-seqLen%d-cF_%s' % (lr,batch_size,percentageDropout,str(nNeuronsSequence),str(nNeurons),epochs,time_step,campaingsFull)
+	fileExtension = '{epoch:02d}-{val_loss:.4f}.hdf5'
+	path_experiment = os.path.join(nameExperimentsFolder,nameExperiment,'models',experimentFolder,nameModel)
+
+	experimentFolder = False
+	experimentHasImage = False
+
+	if os.path.exists(path_experiment):
+		experimentFolder = True
+		for i in os.listdir(path_experiment):
+			if i.split(".")[-1] == "png":
+				experimentHasImage=True
+				break	
+
+	# If the experiment folder already exists, we will ignore it.
+	if experimentHasImage:
+		print('Ignored the experiment %s. This experiment has been used before.' % (path_experiment))
+
+	# The experiment folder doesn't exists
+	else:
+		
+		if experimentFolder:
+			shutil.rmtree(path_experiment)
+		
+		os.makedirs(path_experiment)
+
+		# Callback parameters
+		monitor_stop = 'val_loss' # What the model will check in order to stop the training
+		monitor_reduce_lr = 'val_loss' # What the model will check in order to change the learning rate
+
+		callbacks = []
+		callbacks.append(ModelCheckpoint(os.path.join(path_experiment,fileExtension),monitor='val_loss',
+		                                save_best_only=True, mode='min', verbose=1))
+		callbacks.append(TensorBoard(log_dir=os.path.join(path_experiment,'logs'), write_graph=True))
+		callbacks.append(EarlyStopping(monitor=monitor_stop, min_delta=min_delta, patience=patience_stop, verbose=1))
+		callbacks.append(ReduceLROnPlateau(monitor=monitor_reduce_lr, factor=0.1, patience=patience_reduce_lr, min_lr=1e-08))
+
+		# Create the model
+		k.clear_session()
+
+		input = Input(shape=(time_step,num_features,))
+		x = defineGRU(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLayers, nNeurons)
+		output_1 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_1")(x)
+		output_2 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_2")(x)
+		output_3 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_3")(x)
+		output_4 = Dense(num_classes, activation='softmax',kernel_initializer=keras.initializers.glorot_uniform(seed=seed), name="output_4")(x)    
+
+		model = Model(input,[output_1,output_2,output_3,output_4])
+		y_train_t1 = y_train[:,0]
+		y_train_t2 = y_train[:,1]
+		y_train_t3 = y_train[:,2]
+		y_train_t4 = y_train[:,3]
+		y_test_t1 = y_test[:,0]
+		y_test_t2 = y_test[:,1]
+		y_test_t3 = y_test[:,2]
+		y_test_t4 = y_test[:,3]
+
+		# Show and write the neural net
+		print(model.summary())
+		write_model_structure(model, path_experiment)
+
+		# Compiling the neural network
+		model.compile(optimizer=adam(lr=lr), 
+		    loss={'output_1' : loss_function, 'output_2' : loss_function, 'output_3': loss_function, 'output_4' : loss_function},
+		    metrics=metrics)
+
+		# Training the model
+		history = model.fit(
+		    x=x_train,
+		    y={'output_1' : y_train_t1, 'output_2' : y_train_t2, 'output_3': y_train_t3, 'output_4' : y_train_t4},
+		    validation_data=(x_test,{'output_1' : y_test_t1, 'output_2' : y_test_t2, 'output_3': y_test_t3, 'output_4' : y_test_t4}),
+		    batch_size=batch_size, 
+		    epochs=epochs, 
+		    shuffle=shuffle,
+		    callbacks=callbacks,
+		    verbose=1,
+		    workers=6,
+		    use_multiprocessing=True)
+
+		plt.figure(figsize=(10,5))
+		plt.xlabel('Epoch')
+		plt.ylabel('Loss')
+		plt.yscale('log')
+		  
+		# Error de entrenamiento
+		plt.plot(history.epoch,np.array(history.history['loss']),label='Loss (train)')
+		# Error de validación
+		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
+
+		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -2208,7 +3576,7 @@ def TrainCNN(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuron
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
-
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -2351,6 +3719,7 @@ def TrainCNN_4Outputs(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0
 		plt.plot(history.epoch,np.array(history.history['val_loss']),label='Loss (val)')
 
 		plt.legend()
+		plt.grid()
 
 		val_loss_index = np.array(history.history['val_loss']).argmin()
 
@@ -2467,7 +3836,7 @@ def main():
 		print("Error -> 'tags_name' not specified")
 		sys.exit()
 
-	if args.network in ["LSTM_p_CNN", "LSTM+CNN", "CNN+LSTM", "LSTM", "CNN"]:
+	if args.network in ["LSTM_p_CNN", "GRU_p_CNN", "LSTM+CNN", "GRU+CNN", "CNN+LSTM", "CNN+GRU", "LSTM", "GRU", "CNN"]:
 
 		# --- LOAD DATA ---
 		# Create experiments folder
@@ -2528,6 +3897,22 @@ def main():
 					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
 					network=args.network,nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
+		elif args.network == "GRU_p_CNN":
+
+			if num_labels_header == 1:
+
+				TrainGRU_p_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
+					nNeuronsConv1D=nNeuronsConv1D,kernelSize=args.kernelSize,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
+					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
+					network=args.network,nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+			elif num_labels_header == 4:
+
+				TrainGRU_p_CNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout,nNeuronsSequence=nNeuronsSequence,
+					nNeuronsConv1D=nNeuronsConv1D,kernelSize=args.kernelSize,nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, 
+					min_delta=args.min_delta, x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, 
+					network=args.network,nameExperimentsFolder=nameExperimentsFolder, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)				
+
 		elif args.network == "LSTM+CNN":
 
 			if num_labels_header == 1:
@@ -2543,6 +3928,22 @@ def main():
 					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
 					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+		elif args.network == "GRU+CNN":
+
+			if num_labels_header == 1:
+
+				TrainGRU_CNN(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
+					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+			elif num_labels_header == 4:
+
+				TrainGRU_CNN_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
+					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)				
 
 		elif args.network == "CNN+LSTM":
 
@@ -2560,6 +3961,22 @@ def main():
 					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
 					network=args.network, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
 
+		elif args.network == "CNN+GRU":
+
+			if num_labels_header == 1:
+
+				TrainCNN_GRU(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
+					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+			elif num_labels_header == 4:
+
+				TrainCNN_GRU_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeuronsConv1D=nNeuronsConv1D, kernelSize=args.kernelSize,
+					nNeurons=nNeurons, patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, 
+					x_train = x_train, y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes,nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network, nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)				
+
 		elif args.network == "LSTM":
 
 			if num_labels_header == 1:
@@ -2575,6 +3992,22 @@ def main():
 					patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
 					y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
 					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+		elif args.network == "GRU":
+
+			if num_labels_header == 1:
+
+				TrainGRU(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
+					patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
+					y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)
+
+			elif num_labels_header == 4:
+
+				TrainGRU_4Outputs(lr=args.learning_rate,batch_size=args.batch_size,epochs=args.epochs,percentageDropout=args.percentageDropout, nNeuronsSequence=nNeuronsSequence,nNeurons=nNeurons, 
+					patience_stop = args.patience, patience_reduce_lr=args.patience_reduce_lr, loss_function = args.loss_function, shuffle=args.shuffle, min_delta=args.min_delta, x_train = x_train, 
+					y_train=y_train, x_test=x_test, y_test=y_test, time_step=time_step, num_features = num_features, num_classes = num_classes, nameExperimentsFolder=nameExperimentsFolder, 
+					network=args.network,nameExperiment=args.nameExperiment, experimentFolder=experimentFolder,campaingsFull=args.campaingsFull)				
 
 		elif args.network == "CNN":
 
