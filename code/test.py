@@ -58,9 +58,10 @@ def WriteResultsModel(model,best_model_path,output_writer, x_test, y_test, steps
 	accuracy_outputs = list()
 	num_outputs = len(labels_header)
 
-	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN_LSTM" == best_model_path.split("\\")[-1][0:8]:
+	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
+	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
+		print("x_test reshaped")
 
 	# Get the predictions
 	predictions = model.predict(x_test)
@@ -141,6 +142,7 @@ def loadData(campaingPath, networkPath, indexes, labels, interpolate, time_step,
 		# open csv
 		areadf = pd.read_csv(os.path.join(pathData,region))
 		areadf = areadf[indexes].dropna(how='all')
+		areadf = areadf.drop_duplicates()
 
 		# interpolate data
 		if(interpolate):
@@ -203,6 +205,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 		region_path = row[0]
 		areadf = pd.read_csv(os.path.join(campaingPath,'dataset',region_path))
 		areadf = areadf[indexes].dropna(how='all')
+		areadf = areadf.drop_duplicates()	
 
 		if(interpolate):
 			areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
@@ -211,8 +214,14 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 		seq = areadf.values
 		len_seq = len(seq)
 		n = time_step - len_seq
-		to_concat = np.repeat(seq[-1], n).reshape(num_features, n).transpose()
-		seq = np.concatenate([seq, to_concat])
+
+		# If we need more observations, we repeat the last value of the sequence
+		if n > 0:
+			to_concat = np.repeat(seq[-1], n).reshape(num_features, n).transpose()
+			seq = np.concatenate([seq, to_concat])
+		# If we don't need more observations, we remove the last ones
+		elif n < 0:
+			seq = seq[:n]		
 
 		# Normalize
 		seq = seq.reshape((1,time_step*num_features),order='F')
@@ -278,8 +287,8 @@ def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_hea
 	if not os.path.exists(path_results):
 		os.mkdir(path_results)
 
-	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN_LSTM" == modelSplitPath[-1][0:8]:
+	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
+	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
@@ -372,8 +381,8 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_hea
 	if not os.path.exists(path_results):
 		os.mkdir(path_results)
 
-	# For CNN+LSTM, we had changed the input shape (n_samples, substeps, steps, features)
-	if "CNN_LSTM" == modelSplitPath[-1][0:8]:
+	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
+	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
