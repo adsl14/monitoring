@@ -318,6 +318,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 	    region_path = row[0]
 	    areadf = pd.read_csv(os.path.join(path_radar,campaing,'dataset',region_path))
 	    areadf = areadf[indexes].dropna(how='all')
+	    areadf = areadf.drop_duplicates()
 
 	    if(interpolate):
 	      areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
@@ -337,6 +338,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 	    region_path = row[0]
 	    areadf = pd.read_csv(os.path.join(path_radar,campaing,'dataset',region_path))
 	    areadf = areadf[indexes].dropna(how='all')
+	    areadf = areadf.drop_duplicates()
 
 	    if(interpolate):
 	      areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
@@ -451,6 +453,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	    region_path = row[0]
 	    areadf = pd.read_csv(os.path.join(path_radar,campaing,'dataset',region_path))
 	    areadf = areadf[indexes].dropna(how='all')
+	    areadf = areadf.drop_duplicates()
 
 	    if(interpolate):
 	      areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
@@ -481,6 +484,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	  region_path = row[0]
 	  areadf = pd.read_csv(os.path.join(path_radar,campaings[-1],'dataset',region_path))
 	  areadf = areadf[indexes].dropna(how='all')
+	  areadf = areadf.drop_duplicates()
 
 	  if(interpolate):
 	    areadf = areadf.interpolate(method='linear', axis=0).ffill().bfill()
