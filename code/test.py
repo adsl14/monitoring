@@ -59,7 +59,7 @@ def WriteResultsModel(model,best_model_path,output_writer, x_test, y_test, steps
 	num_outputs = len(labels_header)
 
 	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
-	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
+	if modelSplitPath[-1].split('-')[0].split("__")[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
@@ -288,7 +288,7 @@ def TestModelTag(model,modelPath, x_test,y_test, num_regions, labels, labels_hea
 		os.mkdir(path_results)
 
 	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
-	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
+	if modelSplitPath[-1].split('-')[0].split("__")[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
@@ -382,7 +382,7 @@ def TestModel(model, modelPath, x_test, regions, num_regions, labels, labels_hea
 		os.mkdir(path_results)
 
 	# For CNN+LSTM or CNN+GRU, we had changed the input shape (n_samples, substeps, steps, features)
-	if modelSplitPath[-1].split('-')[0] in ["CNN_LSTM", "CNN_GRU"]:
+	if modelSplitPath[-1].split('-')[0].split("__")[0] in ["CNN_LSTM", "CNN_GRU"]:
 		x_test = x_test.reshape((x_test.shape[0], 1, steps, features))
 		print("x_test reshaped")
 
