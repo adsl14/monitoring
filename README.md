@@ -20,7 +20,7 @@ Deep learning network for monitoring areas using sentinel-2 for analisys and sen
 * Sklearn 0.23.2
 * Matplotlib 3.3.2
 * Pywin32 227
-* GitHub 2.23.0.windows.1
+* Git 2.23.0.windows.1
 
 ### 2. Install CUDA
 
