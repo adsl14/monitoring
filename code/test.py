@@ -194,11 +194,11 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 	for label_header in labels_header:
 		tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
 	tagDataFrameName = tagDataFrame["id"]
-	print(" '%s' de test cargado correctamente" %(tags_name))
+	print(" '%s' de val cargado correctamente" %(tags_name))
 
 	total_test = tagDataFrame.shape[0]
 
-	# Get the sequence for each area (TEST)
+	# Get the sequence for each area (VAL)
 	i = 1
 	for row in tagDataFrame.values:
 
@@ -228,7 +228,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 		seq = scaler.transform(seq)
 		seq = np.reshape(seq, (time_step, num_features),order='F')
 
-		print("---Test---")
+		print("---Val---")
 		print(campaingPath)
 		print("Progreso %d/%d" %(i,total_test))
 		print("Recinto %s cargado." %(region_path))
@@ -246,7 +246,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 
 	unique_samples_test, num_testSamples = np.unique(y_data, axis=0, return_counts=True)
 	print("")
-	print("Test")
+	print("Val")
 	print(unique_samples_test)
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
@@ -481,7 +481,7 @@ def TestModels(modelsExperiments,nameExperiment, campaingPath, tags_name):
 						modelPath = os.path.join("experiments", nameExperiment, "models", modelExperiment, modelName)
 						exists, score = searchModelInFile(modelPath,input_reader)
 
-						# The model has already tested
+						# The model has already been tested
 						if exists:
 							print('Ignored the model %s' %(modelPath))
 							output_writer.writerow([modelPath] + score)

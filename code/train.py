@@ -66,7 +66,7 @@ def defineArgParsers():
 	required.add_argument("--indexes_sentinel1",type=str, default='', help="indexes of radar to be used (Rice: VH_Sum_VV). Separator -> ','. Type -> string. Example -> --indexes_sentinel1='VH_Sum_VV,VV'")
 	required.add_argument("--labels",type=str, default='', help="Labels name for each class ('cumple','no_cumple'). Separator -> ','. Type -> string. Example -> --labels='cumple,no_cumple")
 	required.add_argument("--colors_label",type=str, default='', help="Color for each class name ('cyan','orange'. Separator -> ','). Type -> string. Example -> --colors_label='cyan,orange'")
-	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last test. Separator -> '|'). Type -> string. Example -> --campaings='rice_A,B_DESC,ASC_2016-11-15_2017-01-15|rice_A,B_DESC,ASC_2017-11-15_2018-01-15'")
+	required.add_argument("--campaings",type=str, default='', help="What campaings we will use (the order is important -> train and last val. Separator -> '|'). Type -> string. Example -> --campaings='rice_A,B_DESC,ASC_2016-11-15_2017-01-15|rice_A,B_DESC,ASC_2017-11-15_2018-01-15'")
 	required.add_argument("--tags_name",type=str, default='', help="Tag filename of the regions (Rice -> tags_subarroz (2_classes).csv). Type -> string. Example -> --tags_name='tags.csv'")
 
 	# OPTIONAL
@@ -84,7 +84,7 @@ def defineArgParsers():
 	parser.add_argument("--loss_function",type=str, default="categorical_crossentropy", help="loss function (categorical_crossentropy). Type -> string. Example -> --loss_function='categorical_crossentropy'")
 	parser.add_argument("--shuffle",type=str2bool, default="y", help="Whether to shuffle the order of the batches at the beginning of each epoch. Type -> string. Example -> --shuffle='y'")
 	parser.add_argument("--min_delta",type=float, default=1e-3, help="Minimum change in the monitored quantity to qualify as an improvement. Type -> float. Example -> --min_delta=1e-03")
-	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/test each campaing) or using a few for train, and one for test. Type -> string. Example -> --campaingsFull='n'")
+	parser.add_argument("--campaingsFull",type=str2bool, default="n", help="using all the campaings to train (split train/val each campaing) or using a few for train, and one for val. Type -> string. Example -> --campaingsFull='n'")
 	parser.add_argument("--indexes_sentinel2",type=str, default='', help="indexes of optic to be used (Rice: ICEDEX, B11). Separator -> ','. Type -> string. Example -> --indexes_sentinel2='NDVI,B11'")
 	parser.add_argument("--kernelSize",type=int, default=3, help="kernel's size for convolutional 1D. Type -> int. Example -> --kernelSize=3")
 
@@ -218,7 +218,7 @@ def showSamples(tags_name):
 
 	for campaing in campaings[:-1]:
 
-	  # Read the train and test .csv
+	  # Read the train and val.csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
 	  labels_header = list(tagDataFrameTrain.columns[1:])
 	  for label_header in labels_header:
@@ -228,7 +228,7 @@ def showSamples(tags_name):
 
 	  print(campaing)
 
-	# Read the train and test .csv
+	# Read the train and val.csv
 	tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaings[-1],tags_name))
 	for label_header in labels_header:
 		tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[label_header] != -1]
@@ -244,7 +244,7 @@ def showSamples(tags_name):
 	print("Total %d" %(total_train))
 
 	print("")
-	print("Test")
+	print("Validación")
 	print(num_testSamples)
 	total_test = num_testSamples.sum()
 	print("Total %d" %(total_test))
@@ -254,7 +254,7 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 	for campaing in campaings:
 
 		path_train = os.path.join(path_radar,campaing,"train.csv")
-		path_test = os.path.join(path_radar,campaing,"test.csv")
+		path_test = os.path.join(path_radar,campaing,"val.csv")
 
 		# Read 'tags.csv' and clean tag dataframe. Ignore the samples that were marked as -1
 		tagDataFrame = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
@@ -275,7 +275,7 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 			tagDataFrameName = tagDataFrame[name_region]
 			tagDataFrameActivity = tagDataFrame[labels_header]
 
-			# Get the train and test split. It will shuffle automatically. 70% train, 30% test  
+			# Get the train and val split. It will shuffle automatically. 70% train, 30% val  
 			dfName_train, dfName_test, dfTarget_train, dfTarget_test = train_test_split(tagDataFrameName,tagDataFrameActivity, test_size=0.3, random_state=seed, stratify=tagDataFrameActivity)
 
 			df_train = pd.concat([dfName_train, dfTarget_train], axis=1)
@@ -283,8 +283,8 @@ def splitTrainTestCampaings(test_size=0.3,*,campaings,path_radar,tags_name):
 			print("Conjunto de train guardado correctamente en %s" %(os.path.join(path_radar,campaing,"train.csv")))
 
 			df_test = pd.concat([dfName_test, dfTarget_test], axis=1)
-			pd.DataFrame.to_csv(df_test,index=False,path_or_buf=os.path.join(path_radar,campaing,"test.csv"))
-			print("Conjunto de test guardado correctamente en %s" %(os.path.join(path_radar,campaing,"test.csv")))
+			pd.DataFrame.to_csv(df_test,index=False,path_or_buf=os.path.join(path_radar,campaing,"val.csv"))
+			print("Conjunto de val guardado correctamente en %s" %(os.path.join(path_radar,campaing,"val.csv")))
 
 	return labels_header
 
@@ -301,12 +301,12 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 
 	for campaing in campaings:
 
-	  # Read the train and test .csv
+	  # Read the train and val.csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,"train.csv"))
 	  print("'train.csv' cargado correctamente")
 
-	  tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaing,"test.csv"))
-	  print("'test.csv' cargado correctamente")
+	  tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaing,"val.csv"))
+	  print("'val.csv' cargado correctamente")
 
 	  total_train = tagDataFrameTrain.shape[0]
 	  total_test = tagDataFrameTest.shape[0]
@@ -346,7 +346,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 	    sequencesTest.append(areadf.values)
 	    targetsTest.append(row[1:])
 
-	    print("---Test---")
+	    print("---Validación---")
 	    print(campaing)
 	    print("Progreso %d/%d" %(i,total_test))
 	    print("Recinto %s cargado." %(region_path))
@@ -385,7 +385,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 	      new_seq.append(new_one_seq)
 	  x_train = np.array(new_seq)
 
-	  print("Generating fix time_step for test")
+	  print("Generating fix time_step for val")
 	  new_seq = []
 	  for one_seq in sequencesTest:
 	      len_one_seq = len(one_seq)
@@ -416,7 +416,7 @@ def loadSamplesFull(labels, indexes, campaings, path_radar,interpolate):
 	print("Total: %d" %(num_trainSamples.sum()))
 
 	print("")
-	print("Test")
+	print("Validación")
 	print(unique_samples_test)
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
@@ -437,7 +437,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	# --- TRAIN BLOCK ---
 	for campaing in campaings[:-1]:
 
-	  # Read the train and test .csv
+	  # Read the train and val.csv
 	  tagDataFrameTrain = pd.read_csv(os.path.join(path_radar,campaing,tags_name))
 	  labels_header = list(tagDataFrameTrain.columns[1:])
 	  for label_header in labels_header:
@@ -467,17 +467,17 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	    print("Recinto %s cargado." %(region_path))
 	    i=i+1
 
-	# --- TEST BLOCK ---
-	# Read the test .csv
+	# --- VAL BLOCK ---
+	# Read the val .csv
 	tagDataFrameTest = pd.read_csv(os.path.join(path_radar,campaings[-1],tags_name))
 	labels_header = list(tagDataFrameTest.columns[1:])
 	for label_header in labels_header:
 		tagDataFrameTest = tagDataFrameTest[tagDataFrameTest[label_header] != -1]
-	print("'tags.csv' de test cargado correctamente")
+	print("'tags.csv' de val cargado correctamente")
 
 	total_test = tagDataFrameTest.shape[0]
 
-	# Get the sequence for each area (TEST)
+	# Get the sequence for each area (VAL)
 	i = 1
 	for row in tagDataFrameTest.values:
 
@@ -492,7 +492,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	  sequencesTest.append(areadf.values)
 	  targetsTest.append(row[1:])
 
-	  print("---Test---")
+	  print("---Validación---")
 	  print(campaings[-1])
 	  print("Progreso %d/%d" %(i,total_test))
 	  print("Recinto %s cargado." %(region_path))
@@ -531,7 +531,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	      new_seq.append(new_one_seq)
 	  x_train = np.array(new_seq)
 
-	  print("Generating fix time_step for test")
+	  print("Generating fix time_step for val")
 	  new_seq = []
 	  for one_seq in sequencesTest:
 	      len_one_seq = len(one_seq)
@@ -562,7 +562,7 @@ def loadSamples(tags_name, labels, indexes, campaings, path_radar,interpolate):
 	print("Total: %d" %(num_trainSamples.sum()))
 
 	print("")
-	print("Test")
+	print("Validación")
 	print(unique_samples_test)
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
@@ -1443,7 +1443,7 @@ def main():
 		sys.exit()
 	campaings = args.campaings.split("|")
 
-	# If we're using only one campaing, we have to split it to train and test samples
+	# If we're using only one campaing, we have to split it to train and val samples
 	if args.campaingsFull == False and len(campaings) == 1:
 		args.campaingsFull = True
 
