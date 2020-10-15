@@ -194,11 +194,11 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 	for label_header in labels_header:
 		tagDataFrame = tagDataFrame[tagDataFrame[label_header] != -1]
 	tagDataFrameName = tagDataFrame["id"]
-	print(" '%s' de val cargado correctamente" %(tags_name))
+	print(" '%s' cargado correctamente" %(tags_name))
 
 	total_test = tagDataFrame.shape[0]
 
-	# Get the sequence for each area (VAL)
+	# Get the sequence for each area (TEST)
 	i = 1
 	for row in tagDataFrame.values:
 
@@ -228,7 +228,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 		seq = scaler.transform(seq)
 		seq = np.reshape(seq, (time_step, num_features),order='F')
 
-		print("---Val---")
+		print("---%s---" % (tags_name))
 		print(campaingPath)
 		print("Progreso %d/%d" %(i,total_test))
 		print("Recinto %s cargado." %(region_path))
@@ -246,7 +246,7 @@ def loadDataTag(campaingPath, tags_name, labels_header, indexes, time_step, num_
 
 	unique_samples_test, num_testSamples = np.unique(y_data, axis=0, return_counts=True)
 	print("")
-	print("Val")
+	print(tags_name)
 	print(unique_samples_test)
 	print(num_testSamples)
 	print("Total: %d" %(num_testSamples.sum()))
