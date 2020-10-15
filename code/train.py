@@ -1487,7 +1487,11 @@ def main():
 		path_optionsFile = os.path.join(path_folderOptions,experimentFolder+".csv")
 		if not os.path.exists(path_folderOptions):
 			os.mkdir(path_folderOptions)
-		writeOptions(path_optionsFile, args.nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, args.tags_name, time_step, campaings)
+		# Check if the options file is already saved
+		if os.path.exists(path_optionsFile):
+			print("Options file already saved")
+		else:
+			writeOptions(path_optionsFile, args.nameExperiment, indexes, interpolate, labels_header, labels, colors_label, args.campaingsFull, args.tags_name, time_step, campaings)
 
 		# Convert string into int array
 		nNeuronsSequence = [int(i) for i in args.nNeuronsSequence.split(",")]
