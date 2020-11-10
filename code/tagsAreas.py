@@ -2,7 +2,6 @@ from cleanData import path_radar, pd, indexes_sentinel1_v2
 from downloadData_EE import os, indexes_sentinel2
 import csv, datetime, numpy as np
 import matplotlib
-import matplotlib as mpl
 import matplotlib.dates as dt
 import matplotlib.pyplot as plt
 from win32api import GetSystemMetrics
