@@ -591,7 +591,8 @@ def main():
 			if args.tags_name != '':
 				# Load data
 				x_data, y_data, tagDataFrameName, num_regions = loadDataTag(args.campaingPath, args.tags_name, labels_header, indexes, time_step, num_features, num_classes, scaler, interpolate)
-				TestModelTag(model, args.networkPath, x_data, y_data, num_regions, labels, labels_header, time_step, num_features, num_classes, tagDataFrameName, os.path.join(tempPath[0],tempPath[1],"results",args.campaingPath.split("\\")[-1]+"-loss_predictions.csv"))
+				TestModelTag(model, args.networkPath, x_data, y_data, num_regions, labels, labels_header, time_step, num_features, num_classes, tagDataFrameName, 
+					os.path.join(tempPath[0],tempPath[1], "results", args.campaingPath.split("\\")[-1]+"-loss_predictions_" + args.tags_name))
 
 			# Only predict without tags
 			else:
