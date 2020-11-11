@@ -1368,7 +1368,13 @@ def Train(lr=1e-03, batch_size=16, epochs=100, percentageDropout=0.0, nNeuronsCo
 		# Save figure
 		plt.savefig(os.path.join(path_experiment, nameModel + ".png"))
 
-		writeAccuracyResults(network,nameExperiment,path_experiment,loss,losses, accuracies, val_loss, val_losses, val_accuracies, num_modules_output)	
+		writeAccuracyResults(network,nameExperiment,path_experiment,loss,losses, accuracies, val_loss, val_losses, val_accuracies, num_modules_output)
+
+		# Free memory
+		del model
+		sess = k.get_session()
+		k.clear_session()
+		sess.close()		
 
 def main():
 
