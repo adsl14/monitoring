@@ -704,8 +704,8 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	  else:
 	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
 
-	  if percentageDropout > 0.0:
-	    x = Dropout(percentageDropout)(x)            
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)            
 
 	else:
 	  print("Please, insert at least one recurrent layer.")
@@ -725,8 +725,8 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	      #x_2 = BatchNormalization()(x_2)
 
 	      if i % 2 == 1:          	
-	      	if percentageDropout > 0.0:
-	      		x_2 = Dropout(percentageDropout)(x_2)
+	      	#if percentageDropout > 0.0:
+	      		#x_2 = Dropout(percentageDropout)(x_2)
 	      	x_2 = MaxPooling1D()(x_2)	      		      
 
 	    #x_2 = GlobalAveragePooling1D()(x_2)
@@ -750,8 +750,8 @@ def defineLSTM_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nN
 	    x = add_Dense_Layer(nNeurons[i], x)
 
 	  # Add dropout before the output layer
-	  #if percentageDropout > 0.0:
-	    #x = Dropout(percentageDropout)(x)
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
 
 	return x
 
@@ -776,8 +776,8 @@ def defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNe
 	  else:
 	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, input)
 
-	  if percentageDropout > 0.0:
-	    x = Dropout(percentageDropout)(x)            
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)            
 
 	else:
 	  print("Please, insert at least one recurrent layer.")
@@ -797,8 +797,8 @@ def defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNe
 	      #x_2 = BatchNormalization()(x_2)
 
 	      if i % 2 == 1:          	
-	      	if percentageDropout > 0.0:
-	      		x_2 = Dropout(percentageDropout)(x_2)
+	      	#if percentageDropout > 0.0:
+	      		#x_2 = Dropout(percentageDropout)(x_2)
 	      	x_2 = MaxPooling1D()(x_2)	      		      
 
 	    #x_2 = GlobalAveragePooling1D()(x_2)
@@ -822,8 +822,8 @@ def defineGRU_p_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNe
 	    x = add_Dense_Layer(nNeurons[i], x)
 
 	  # Add dropout before the output layer
-	  #if percentageDropout > 0.0:
-	    #x = Dropout(percentageDropout)(x)
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
 
 	return x
 
@@ -840,8 +840,8 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
       for i in range(1,nLayersSequence):
         x = add_CuDNNLSTM_Layer(nNeuronsSequence[i], True, x)
 
-      if percentageDropout > 0.0:
-            x = Dropout(percentageDropout)(x)  
+      #if percentageDropout > 0.0:
+            #x = Dropout(percentageDropout)(x)  
     else:
       print("Please, insert at least one recurrent layer.")
       assert False
@@ -859,8 +859,8 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
           #x = BatchNormalization()(x)
 
           if i % 2 == 1:          	
-          	if percentageDropout > 0.0:
-          		x = Dropout(percentageDropout)(x)
+          	#if percentageDropout > 0.0:
+          		#x = Dropout(percentageDropout)(x)
           	x = MaxPooling1D()(x)          		
 
         # Apply global average pooling and make the output only one dimension
@@ -880,8 +880,8 @@ def defineLSTM_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeu
         x = add_Dense_Layer(nNeurons[i], x)
 
       # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
 
     return x
 
@@ -898,8 +898,8 @@ def defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeur
       for i in range(1,nLayersSequence):
         x = add_CuDNNGRU_Layer(nNeuronsSequence[i], True, x)
 
-      if percentageDropout > 0.0:
-            x = Dropout(percentageDropout)(x)  
+      #if percentageDropout > 0.0:
+            #x = Dropout(percentageDropout)(x)  
     else:
       print("Please, insert at least one recurrent layer.")
       assert False
@@ -917,8 +917,8 @@ def defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeur
           #x = BatchNormalization()(x)
 
           if i % 2 == 1:          	
-          	if percentageDropout > 0.0:
-          		x = Dropout(percentageDropout)(x)
+          	#if percentageDropout > 0.0:
+          		#x = Dropout(percentageDropout)(x)
           	x = MaxPooling1D()(x)          		
 
         # Apply global average pooling and make the output only one dimension
@@ -938,8 +938,8 @@ def defineGRU_CNN(input, nLayersSequence, nNeuronsSequence, nLayersConv1D, nNeur
         x = add_Dense_Layer(nNeurons[i], x)
 
       # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
 
     return x
 
@@ -958,8 +958,8 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequ
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
-            if percentageDropout > 0.0:
-              x = TimeDistributed(Dropout(percentageDropout))(x)
+            #if percentageDropout > 0.0:
+              #x = TimeDistributed(Dropout(percentageDropout))(x)
             x = TimeDistributed(MaxPooling1D())(x)              
 
         # Apply flatten
@@ -988,8 +988,8 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequ
         x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, x)
 
       # Add dropout layer 
-      if percentageDropout > 0.0:
-        x = Dropout(percentageDropout)(x)
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
     else:
       print("Please, insert at least one recurrent layer.")
       assert False
@@ -1003,8 +1003,8 @@ def defineCNN_LSTM(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSequ
         x = add_Dense_Layer(nNeurons[i], x)
 
       # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
 
     return x	
 
@@ -1023,8 +1023,8 @@ def defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSeque
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
-            if percentageDropout > 0.0:
-              x = TimeDistributed(Dropout(percentageDropout))(x)
+            #if percentageDropout > 0.0:
+              #x = TimeDistributed(Dropout(percentageDropout))(x)
             x = TimeDistributed(MaxPooling1D())(x)              
 
         # Apply flatten
@@ -1053,8 +1053,8 @@ def defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSeque
         x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, x)
 
       # Add dropout layer 
-      if percentageDropout > 0.0:
-        x = Dropout(percentageDropout)(x)
+      #if percentageDropout > 0.0:
+        #x = Dropout(percentageDropout)(x)
     else:
       print("Please, insert at least one recurrent layer.")
       assert False
@@ -1068,8 +1068,8 @@ def defineCNN_GRU(input, nLayersConv1D, nNeuronsConv1D, kernelSize, nLayersSeque
         x = add_Dense_Layer(nNeurons[i], x)
 
       # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
 
     return x	
 
@@ -1095,8 +1095,8 @@ def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLay
 	  else:
 	    x = add_CuDNNLSTM_Layer(nNeuronsSequence[0], False, input)
 	      
-	  if percentageDropout > 0.0:
-	    x = Dropout(percentageDropout)(x)
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
 	else:
 	  print("Please, insert at least one recurrent layer.")
 	  assert False
@@ -1110,8 +1110,8 @@ def defineLSTM(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLay
 	    x = add_Dense_Layer(nNeurons[i], x)
 
 	  # Add dropout before the output layer
-	  #if percentageDropout > 0.0:
-	    #x = Dropout(percentageDropout)(x)
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
 
 	return x
 
@@ -1137,8 +1137,8 @@ def defineGRU(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLaye
 	  else:
 	    x = add_CuDNNGRU_Layer(nNeuronsSequence[0], False, input)
 	      
-	  if percentageDropout > 0.0:
-	    x = Dropout(percentageDropout)(x)
+	  #if percentageDropout > 0.0:
+	    #x = Dropout(percentageDropout)(x)
 	else:
 	  print("Please, insert at least one recurrent layer.")
 	  assert False
@@ -1152,8 +1152,8 @@ def defineGRU(input, nLayersSequence, nNeuronsSequence, percentageDropout, nLaye
 	    x = add_Dense_Layer(nNeurons[i], x)
 
 	  # Add dropout before the output layer
-	  #if percentageDropout > 0.0:
-	    #x = Dropout(percentageDropout)(x)
+	  if percentageDropout > 0.0:
+	    x = Dropout(percentageDropout)(x)
 
 	return x
 
@@ -1172,8 +1172,8 @@ def defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropou
 
           # Add a dropout and a Pooling each 2 conv1D layer
           if i % 2 == 1:
-            if percentageDropout > 0.0:
-              x = Dropout(percentageDropout)(x)
+            #if percentageDropout > 0.0:
+              #x = Dropout(percentageDropout)(x)
             x = MaxPooling1D()(x)              
 
         # Apply flatten
@@ -1192,8 +1192,8 @@ def defineCNN(input, nLayersConv1D, nNeuronsConv1D, kernelSize, percentageDropou
         x = add_Dense_Layer(nNeurons[i], x)
 
       # Add dropout before the output layer
-      #if percentageDropout > 0.0:
-        #x = Dropout(percentageDropout)(x)
+      if percentageDropout > 0.0:
+        x = Dropout(percentageDropout)(x)
 
     return x
 
