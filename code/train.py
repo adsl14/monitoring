@@ -190,17 +190,17 @@ def add_CuDNNGRU_Layer(number,return_sequence,data):
 
 def add_Conv1D_Layer(number, kernelSize, data):
 
-  data = Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', 
-              kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
-              bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data)
+  data = Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', padding='same', 
+  	kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
+  	bias_initializer=keras.initializers.glorot_uniform(seed=seed))(data)
   
   return data
 
 def add_Conv1DTimeDistributed_Layer(number, kernelSize, data):
 
-  data = TimeDistributed(Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', 
-              kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
-              bias_initializer=keras.initializers.glorot_uniform(seed=seed)))(data)
+  data = TimeDistributed(Conv1D(filters=number, kernel_size=kernelSize,data_format='channels_last', activation='relu', padding='same',
+  	kernel_initializer=keras.initializers.glorot_uniform(seed=seed),
+  	bias_initializer=keras.initializers.glorot_uniform(seed=seed)))(data)
   
   return data
 
