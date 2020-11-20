@@ -22,6 +22,8 @@ Deep learning network for monitoring areas using sentinel-2 for analisys and sen
 * Pywin32 227
 * Git 2.23.0.windows.1
 
+Make sure the version of the packages is the same from the listed above if you get errors by running the code. 
+
 ### 2. Install CUDA
 
 #### 2.1 Download CUDA Toolkit 10.0 and install it in C hard disk: [CUDA](https://developer.nvidia.com/cuda-10.0-download-archive)
@@ -52,5 +54,3 @@ Deep learning network for monitoring areas using sentinel-2 for analisys and sen
 9. Install Linux commands in Windows: `conda install m2-base`
 10. Install Python extensions for Microsoft Windows: `conda install pywin32`
 11. Install Github: `conda install git`
-
-If you have problems when running the code, check if the package's version are the same from above.
